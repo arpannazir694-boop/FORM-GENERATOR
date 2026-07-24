@@ -1,15 +1,42 @@
-// ---------- Sync button ----------
+// ---------- Fab (quick menu) ----------
 const syncBtn = document.getElementById('syncBtn');
 if (syncBtn) {
-  syncBtn.addEventListener('click', () => {
-    syncBtn.classList.add('spinning');
-    showToast('Syncing workspace...');
-    setTimeout(() => {
-      syncBtn.classList.remove('spinning');
-      showToast('Workspace is up to date');
-    }, 900);
-  });
+  syncBtn.addEventListener('click', () => showToast('Quick menu coming soon'));
 }
+
+// ---------- Notification bell ----------
+const bellBtn = document.getElementById('bellBtn');
+if (bellBtn) {
+  bellBtn.addEventListener('click', () => showToast('No new notifications'));
+}
+
+// ---------- Hamburger menu (side panel) ----------
+const menuBtn = document.getElementById('menuBtn');
+const sidePanel = document.getElementById('sidePanel');
+const sideOverlay = document.getElementById('sideOverlay');
+const sideCloseBtn = document.getElementById('sideCloseBtn');
+
+function openSidePanel() {
+  if (!sidePanel || !sideOverlay) return;
+  sidePanel.classList.add('open');
+  sideOverlay.classList.add('open');
+}
+function closeSidePanel() {
+  if (!sidePanel || !sideOverlay) return;
+  sidePanel.classList.remove('open');
+  sideOverlay.classList.remove('open');
+}
+
+if (menuBtn) menuBtn.addEventListener('click', openSidePanel);
+if (sideCloseBtn) sideCloseBtn.addEventListener('click', closeSidePanel);
+if (sideOverlay) sideOverlay.addEventListener('click', closeSidePanel);
+
+document.querySelectorAll('.side-item').forEach(btn => {
+  btn.addEventListener('click', () => {
+    showToast(`Opening ${btn.dataset.label}...`);
+    closeSidePanel();
+  });
+});
 
 // ---------- Avatar menu ----------
 const avatarBtn = document.getElementById('avatarBtn');
@@ -34,7 +61,7 @@ if (logoutBtn) {
 }
 
 // ---------- Line-stage cards ----------
-document.querySelectorAll('.clay-btn').forEach(btn => {
+document.querySelectorAll('.stage-card').forEach(btn => {
   btn.addEventListener('click', () => {
     showToast(`Opening ${btn.dataset.label}...`);
   });
@@ -46,6 +73,13 @@ document.querySelectorAll('.bottom-nav button').forEach(btn => {
     document.querySelectorAll('.bottom-nav button').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     showToast(btn.dataset.view === 'reports' ? 'Opening reports' : 'Home');
+
+    const icon = btn.querySelector('.nav-icon');
+    if (icon) {
+      icon.classList.remove('pop');
+      void icon.offsetWidth; // restart animation
+      icon.classList.add('pop');
+    }
   });
 });
 
@@ -59,7 +93,7 @@ function showToast(msg) {
   window._toastTimer = setTimeout(() => toast.classList.remove('show'), 1800);
 }
 
-// ---------- Login form ----------
+// ---------- Login form (login.html) ----------
 const loginForm = document.getElementById('loginForm');
 if (loginForm) {
   loginForm.addEventListener('submit', (e) => {
