@@ -9,77 +9,167 @@
 <body>
 <div class="app">
 
-  <div class="hero">
-    <div class="topbar">
-      <button class="icon-btn" title="Cloud status">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M7 18a5 5 0 0 1-1-9.9A6 6 0 0 1 17.8 7 4.5 4.5 0 0 1 17 16H7z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+  <div class="side-overlay" id="sideOverlay"></div>
+  <aside class="side-panel" id="sidePanel">
+    <div class="side-panel-head">
+      <div class="side-panel-brand">
+        <span class="side-panel-logo">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 3l2.6 5.6 6.1.7-4.6 4.2 1.2 6-5.3-3-5.3 3 1.2-6-4.6-4.2 6.1-.7z" fill="#fff" fill-opacity="0.95"/></svg>
+        </span>
+        <span>
+          <strong>FMS Workspace</strong>
+          <small>Trio Trend Exports Pvt. Ltd.</small>
+        </span>
+      </div>
+      <button class="icon-btn square" id="sideCloseBtn" title="Close">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+
+    <div class="side-panel-label">Line Stages</div>
+
+    <nav class="side-panel-list">
+      <button class="side-item" data-label="End of Line" style="--tint-a:#dbe6ff; --tint-b:#f1f5ff; --ic:#3b6fef; --sh:rgba(59,111,239,0.22);">
+        <span class="side-item-icon"><svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M6 3v18" stroke="var(--ic)" stroke-width="2" stroke-linecap="round"/><path d="M6 4h9l-2 3 2 3H6" fill="var(--ic)"/></svg></span>
+        <span class="side-item-text">End of Line</span>
+        <span class="side-item-arrow"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="var(--ic)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
       </button>
 
-      <div class="avatar-badge" id="avatarBtn">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.5" stroke="currentColor" stroke-width="1.6"/><path d="M5 19c1.2-3.2 4-5 7-5s5.8 1.8 7 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-        <div class="menu-panel" id="menuPanel">
-          <button id="logoutBtn">Log out</button>
-          <button id="profileBtn">Profile settings</button>
+      <button class="side-item" data-label="Edge Paint" style="--tint-a:#ffe3c2; --tint-b:#fff4e8; --ic:#ff8a3d; --sh:rgba(255,138,61,0.22);">
+        <span class="side-item-icon"><svg width="19" height="19" viewBox="0 0 24 24" fill="none"><rect x="9" y="2" width="6" height="12" rx="2.5" transform="rotate(45 12 8)" fill="var(--ic)"/><path d="M8 15l-3 5 5-3z" fill="var(--ic)" opacity="0.6"/></svg></span>
+        <span class="side-item-text">Edge Paint</span>
+        <span class="side-item-arrow"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="var(--ic)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      </button>
+
+      <button class="side-item" data-label="Pre AQL" style="--tint-a:#bdf3d9; --tint-b:#edfcf5; --ic:#1fae76; --sh:rgba(31,174,118,0.22);">
+        <span class="side-item-icon"><svg width="19" height="19" viewBox="0 0 24 24" fill="none"><rect x="5" y="3" width="14" height="18" rx="2.5" stroke="var(--ic)" stroke-width="1.8"/><path d="M9 3h6v2H9z" fill="var(--ic)"/><path d="M8 12h8M8 16h5" stroke="var(--ic)" stroke-width="1.6" stroke-linecap="round"/></svg></span>
+        <span class="side-item-text">Pre AQL</span>
+        <span class="side-item-arrow"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="var(--ic)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      </button>
+
+      <button class="side-item" data-label="Post AQL" style="--tint-a:#e0d4ff; --tint-b:#f4f0ff; --ic:#7c5cf0; --sh:rgba(124,92,240,0.22);">
+        <span class="side-item-icon"><svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M12 3l7 3v6c0 5-3.2 8-7 9-3.8-1-7-4-7-9V6z" stroke="var(--ic)" stroke-width="1.8" stroke-linejoin="round"/><path d="M8.5 12.5l2 2 4.5-4.5" stroke="var(--ic)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <span class="side-item-text">Post AQL</span>
+        <span class="side-item-arrow"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="var(--ic)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      </button>
+    </nav>
+  </aside>
+
+  <div class="hero">
+    <div class="hero-dots" aria-hidden="true"></div>
+    <div class="hero-glow" aria-hidden="true"></div>
+
+    <div class="topbar">
+      <button class="icon-btn square" id="menuBtn" title="Menu">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      </button>
+
+      <div class="topbar-right">
+        <button class="icon-btn square" id="bellBtn" title="Notifications">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M6 10a6 6 0 0 1 12 0v4l1.5 3h-15L6 14z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M10 20a2 2 0 0 0 4 0" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+        </button>
+
+        <div class="avatar-badge" id="avatarBtn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.5" stroke="currentColor" stroke-width="1.6"/><path d="M5 19c1.2-3.2 4-5 7-5s5.8 1.8 7 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+          <div class="menu-panel" id="menuPanel">
+            <button id="logoutBtn">Log out</button>
+            <button id="profileBtn">Profile settings</button>
+          </div>
         </div>
       </div>
-
-      <span class="icon-btn-spacer" aria-hidden="true"></span>
     </div>
+
+    <img class="hero-illustration" src="https://res.cloudinary.com/dnrgcigsj/image/upload/v1784894567/WhatsApp_Image_2026-07-24_at_5.30.58_PM_oqavgt.jpg" alt="" aria-hidden="true">
 
     <div class="hero-text">
-      <h1>FMS Workspace</h1>
+      <h1><span class="grad-text">FMS</span> Workspace</h1>
       <p>Trio Trend Exports Pvt. Ltd.</p>
+      <div class="hero-divider"></div>
+
+      <div class="tagline-card">
+        <span class="tagline-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 3l2.6 5.6 6.1.7-4.6 4.2 1.2 6-5.3-3-5.3 3 1.2-6-4.6-4.2 6.1-.7z" fill="#fff" fill-opacity="0.95"/></svg>
+        </span>
+        <span>
+          <strong>Streamline &bull; Monitor &bull; Improve</strong>
+          <small>Your Production, Our Priority</small>
+        </span>
+      </div>
     </div>
 
-    <svg class="hero-wave" viewBox="0 0 400 46" preserveAspectRatio="none">
-      <path d="M0,18 C55,44 95,0 155,20 C215,40 255,4 315,24 C355,38 380,20 400,26 L400,46 L0,46 Z" fill="#f5f4fb"/>
+    <svg class="hero-wave" viewBox="0 0 400 90" preserveAspectRatio="none">
+      <path d="M0,10 C110,95 290,95 400,10 L400,90 L0,90 Z" fill="#f5f4fb"/>
     </svg>
-    <div class="fab-sync" id="syncBtn" title="Sync"></div>
+    <div class="fab-sync" id="syncBtn" title="Quick menu">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="7" height="7" rx="2" fill="#fff"/><rect x="14" y="3" width="7" height="7" rx="2" fill="#fff"/><rect x="3" y="14" width="7" height="7" rx="2" fill="#fff"/><rect x="14" y="14" width="7" height="7" rx="2" fill="#fff"/></svg>
+    </div>
   </div>
 
   <div class="content">
     <div class="section-label">Line Stages</div>
+    <div class="section-accent"><span class="bar"></span><span class="dot"></span></div>
 
     <div class="clay-grid">
 
-      <button class="clay-btn" data-label="End of Line" style="--clay-tint:#e8edff; --clay-ic:#5b7cff; --d:0s;">
-        <span class="clay-icon">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M5 3v18" stroke="var(--clay-ic)" stroke-width="1.8" stroke-linecap="round"/><path d="M5 4h6l-1.5 2.5L11 9H5" fill="var(--clay-ic)" fill-opacity="0.9"/><rect x="7" y="4" width="1.6" height="1.6" fill="#fff"/><rect x="10.2" y="4" width="1.6" height="1.6" fill="#fff"/><rect x="8.6" y="5.6" width="1.6" height="1.6" fill="#fff"/></svg>
-        </span>
-        <span class="clay-label">END OF LINE</span>
+      <button class="stage-card" data-label="End of Line" style="--tint-a:#dbe6ff; --tint-b:#f1f5ff; --ic:#3b6fef; --sh:rgba(59,111,239,0.22); --d:0s;">
+        <span class="stage-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M6 3v18" stroke="var(--ic)" stroke-width="2" stroke-linecap="round"/><path d="M6 4h9l-2 3 2 3H6" fill="var(--ic)"/></svg></span>
+        <h3>END OF LINE</h3>
+        <div class="stage-footer">
+          <span class="stage-bar"></span>
+          <span class="stage-arrow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="var(--ic)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        </div>
       </button>
 
-      <button class="clay-btn" data-label="Edge Paint" style="--clay-tint:#fff1e3; --clay-ic:#ff9a3d; --d:0.08s;">
-        <span class="clay-icon">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M14 3l6 6-8 8-6 1 1-6 7-9z" fill="var(--clay-ic)" fill-opacity="0.9"/><path d="M6 18l-1.5 3.5L8 20" stroke="var(--clay-ic)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </span>
-        <span class="clay-label">EDGE PAINT</span>
+      <button class="stage-card" data-label="Edge Paint" style="--tint-a:#ffe3c2; --tint-b:#fff4e8; --ic:#ff8a3d; --sh:rgba(255,138,61,0.22); --d:0.08s;">
+        <span class="stage-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="9" y="2" width="6" height="12" rx="2.5" transform="rotate(45 12 8)" fill="var(--ic)"/><path d="M8 15l-3 5 5-3z" fill="var(--ic)" opacity="0.6"/></svg></span>
+        <h3>EDGE PAINT</h3>
+        <div class="stage-footer">
+          <span class="stage-bar"></span>
+          <span class="stage-arrow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="var(--ic)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        </div>
       </button>
 
-      <button class="clay-btn" data-label="Pre AQL" style="--clay-tint:#e6faf0; --clay-ic:#2fb886; --d:0.16s;">
-        <span class="clay-icon">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><rect x="5" y="3" width="14" height="18" rx="2.5" stroke="var(--clay-ic)" stroke-width="1.7"/><path d="M9 3h6v2H9z" fill="var(--clay-ic)"/><path d="M8 12h8M8 16h5" stroke="var(--clay-ic)" stroke-width="1.5" stroke-linecap="round"/></svg>
-        </span>
-        <span class="clay-label">PRE AQL</span>
+      <button class="stage-card" data-label="Pre AQL" style="--tint-a:#bdf3d9; --tint-b:#edfcf5; --ic:#1fae76; --sh:rgba(31,174,118,0.22); --d:0.16s;">
+        <span class="stage-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="5" y="3" width="14" height="18" rx="2.5" stroke="var(--ic)" stroke-width="1.8"/><path d="M9 3h6v2H9z" fill="var(--ic)"/><path d="M8 12h8M8 16h5" stroke="var(--ic)" stroke-width="1.6" stroke-linecap="round"/></svg></span>
+        <h3>PRE AQL</h3>
+        <div class="stage-footer">
+          <span class="stage-bar"></span>
+          <span class="stage-arrow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="var(--ic)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        </div>
       </button>
 
-      <button class="clay-btn" data-label="Post AQL" style="--clay-tint:#f3ecff; --clay-ic:#8a5cf6; --d:0.24s;">
-        <span class="clay-icon">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><rect x="5" y="3" width="14" height="18" rx="2.5" stroke="var(--clay-ic)" stroke-width="1.7"/><path d="M9 3h6v2H9z" fill="var(--clay-ic)"/><path d="M8.5 13.5l2 2 4.5-4.5" stroke="var(--clay-ic)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </span>
-        <span class="clay-label">POST AQL</span>
+      <button class="stage-card" data-label="Post AQL" style="--tint-a:#e0d4ff; --tint-b:#f4f0ff; --ic:#7c5cf0; --sh:rgba(124,92,240,0.22); --d:0.24s;">
+        <span class="stage-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 3l7 3v6c0 5-3.2 8-7 9-3.8-1-7-4-7-9V6z" stroke="var(--ic)" stroke-width="1.8" stroke-linejoin="round"/><path d="M8.5 12.5l2 2 4.5-4.5" stroke="var(--ic)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <h3>POST AQL</h3>
+        <div class="stage-footer">
+          <span class="stage-bar"></span>
+          <span class="stage-arrow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="var(--ic)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        </div>
       </button>
 
+    </div>
+
+    <div class="quality-card">
+      <span class="quality-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 3l7 3v6c0 5-3.2 8-7 9-3.8-1-7-4-7-9V6z" stroke="#fff" stroke-width="1.8" stroke-linejoin="round"/><path d="M8.5 12.5l2 2 4.5-4.5" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      <span class="quality-text">
+        <strong>Quality &bull; Accuracy &bull; Accountability</strong>
+        <small>Every Step, Every Time</small>
+      </span>
+      <span class="quality-dots" aria-hidden="true"></span>
     </div>
   </div>
 
   <nav class="bottom-nav">
     <button class="active" data-view="home">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4 11l8-6 8 6v9a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+      <span class="nav-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4 11l8-6 8 6v9a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+      </span>
       Home
     </button>
     <button data-view="reports">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M5 19V9M11 19V5M17 19v-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      <span class="nav-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M5 19V9M11 19V5M17 19v-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      </span>
       Reports
     </button>
   </nav>
