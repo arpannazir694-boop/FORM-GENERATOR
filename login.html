@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Nimbus — Sign in</title>
+<link rel="stylesheet" href="login.css">
+</head>
+<body>
+<div class="auth-app">
+
+  <div class="glow glow-1"></div>
+  <div class="glow glow-2"></div>
+
+  <div class="auth-content">
+    <div class="brand">
+      <div class="brand-icon">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M7 18a5 5 0 0 1-1-9.9A6 6 0 0 1 17.8 7 4.5 4.5 0 0 1 17 16H7z" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/></svg>
+      </div>
+      <h1>Nimbus</h1>
+      <p>All your files, one calm place.</p>
+    </div>
+
+    <form class="auth-card" id="loginForm">
+      <label>Email
+        <input type="email" id="email" placeholder="you@example.com" autocomplete="email">
+      </label>
+      <label>Password
+        <input type="password" id="password" placeholder="••••••••" autocomplete="current-password">
+      </label>
+      <div class="error-msg" id="errorMsg"></div>
+      <a href="#" class="forgot-link" id="forgotLink">Forgot password?</a>
+      <button type="submit" class="primary-btn">Sign in</button>
+    </form>
+
+    <p class="switch-line">New here? <a href="#" id="createAccount">Create an account</a></p>
+  </div>
+
+  <div class="toast" id="toast"></div>
+</div>
+<script src="main.js"></script>
+<script>
+  document.getElementById('forgotLink').addEventListener('click', (e) => {
+    e.preventDefault();
+    showToast('Password reset link sent (demo)');
+  });
+  document.getElementById('createAccount').addEventListener('click', (e) => {
+    e.preventDefault();
+    showToast('Account creation coming soon');
+  });
+</script>
+</body>
+</html>
