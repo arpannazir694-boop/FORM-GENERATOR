@@ -1,7 +1,42 @@
-// ---------- Fab (quick menu) ----------
+// ---------- Fab (quick menu) — toggles Line Stages <-> Store/Warehouse KPIs ----------
 const syncBtn = document.getElementById('syncBtn');
+const stagesGrid = document.getElementById('stagesGrid');
+const kpiGrid = document.getElementById('kpiGrid');
+const stagesSectionLabel = document.getElementById('stagesSectionLabel');
+let showingKpis = false;
+let isFoldAnimating = false;
+
+function toggleStagesView() {
+  if (!stagesGrid || !kpiGrid || isFoldAnimating) return;
+  isFoldAnimating = true;
+
+  const outgoing = showingKpis ? kpiGrid : stagesGrid;
+  const incoming = showingKpis ? stagesGrid : kpiGrid;
+
+  outgoing.classList.remove('fold-in');
+  outgoing.classList.add('fold-out');
+
+  setTimeout(() => {
+    outgoing.hidden = true;
+    outgoing.classList.remove('fold-out');
+
+    incoming.hidden = false;
+    incoming.classList.remove('fold-in');
+    void incoming.offsetWidth; // restart animation
+    incoming.classList.add('fold-in');
+
+    isFoldAnimating = false;
+  }, 220); // matches foldOut animation duration
+
+  showingKpis = !showingKpis;
+  if (stagesSectionLabel) {
+    stagesSectionLabel.textContent = showingKpis ? 'Inventory Transfer' : 'Line Stages';
+  }
+  showToast(showingKpis ? 'Showing Store & Warehouse' : 'Showing Line Stages');
+}
+
 if (syncBtn) {
-  syncBtn.addEventListener('click', () => showToast('Quick menu coming soon'));
+  syncBtn.addEventListener('click', toggleStagesView);
 }
 
 // ---------- Notification bell ----------
@@ -194,6 +229,38 @@ if (loginForm) {
 const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwrt8gRJvzEYANRPk3VR5bMH6BuKHWl6_N9fDbauFiYnWIaj-IKKsp9Q_MtP9-RdW8/exec";
 let eolDataCache = null; // Store fetched data
 
+// ---------- Live entry count on the End of Line stage card ----------
+const eolStageCountNum = document.getElementById('eolStageCountNum');
+
+// Animates the badge number from whatever it currently shows up (or down)
+// to `target`, with a little scale "bump" for extra visual feedback.
+function animateEolStageCount(target) {
+  if (!eolStageCountNum) return;
+  const targetNum = Number(target) || 0;
+  const startNum = parseInt(eolStageCountNum.textContent, 10) || 0;
+  if (startNum === targetNum) return;
+
+  eolStageCountNum.classList.add('bump');
+  clearTimeout(eolStageCountNum._bumpTimer);
+  eolStageCountNum._bumpTimer = setTimeout(() => eolStageCountNum.classList.remove('bump'), 260);
+
+  const duration = 550; // ms
+  const startTime = performance.now();
+
+  function step(now) {
+    const progress = Math.min((now - startTime) / duration, 1);
+    const eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
+    const current = Math.round(startNum + (targetNum - startNum) * eased);
+    eolStageCountNum.textContent = current;
+    if (progress < 1) {
+      requestAnimationFrame(step);
+    } else {
+      eolStageCountNum.textContent = targetNum;
+    }
+  }
+  requestAnimationFrame(step);
+}
+
 // Elements
 const eolBatchInput = document.getElementById('eol_batch'); // Hidden input
 const batchDropdown = document.getElementById('batchDropdown');
@@ -276,8 +343,14 @@ async function fetchEolData() {
     const response = await fetch(WEB_APP_URL);
     const result = await response.json();
     if (result.success) {
+      // Normalize already-submitted Batch IDs into a case/whitespace-
+      // insensitive Set for fast duplicate lookups.
+      result.submittedBatchSet = new Set(
+        (result.submittedBatches || []).map(id => id.toString().trim().toUpperCase())
+      );
       eolDataCache = result;
       populateBatchDropdown(result.production);
+      animateEolStageCount(result.eolEntryCount);
       return result;
     } else {
       throw new Error(result.error || 'Failed to fetch data');
@@ -338,6 +411,46 @@ if (batchSearch && batchList) {
   });
 }
 
+// ---------- Duplicate Batch ID protection ----------
+const batchWarningMsg = document.getElementById('batchWarningMsg');
+let isDuplicateBatchSelected = false;
+
+// Checks the cached "already submitted" list. Case/whitespace-insensitive.
+function isBatchAlreadySubmitted(batchId) {
+  if (!batchId || !eolDataCache || !eolDataCache.submittedBatchSet) return false;
+  return eolDataCache.submittedBatchSet.has(batchId.toString().trim().toUpperCase());
+}
+
+// Shows/hides the inline warning + red highlight, and keeps the Submit
+// button's disabled state in sync with BOTH this check and the existing
+// Repair-vs-Checked quantity check (see validateQuantities below).
+function setDuplicateBatchWarning(isDuplicate) {
+  isDuplicateBatchSelected = isDuplicate;
+
+  if (batchWarningMsg) batchWarningMsg.classList.toggle('show', isDuplicate);
+  if (batchTrigger) batchTrigger.classList.toggle('is-duplicate', isDuplicate);
+
+  if (isDuplicate) {
+    showToast('This Batch ID has already been submitted to End of Line.');
+  }
+
+  refreshSubmitAvailability();
+}
+
+// Recomputes whether Submit should be disabled, combining the duplicate
+// check with the pre-existing Repair-vs-Checked quantity check.
+function refreshSubmitAvailability() {
+  if (!eolSubmitBtn) return;
+
+  const checkedVal = eolChecked ? (parseInt(eolChecked.value, 10) || 0) : 0;
+  const repairVal = eolRepair ? (parseInt(eolRepair.value, 10) || 0) : 0;
+  const qtyInvalid = repairVal > checkedVal && repairVal > 0;
+
+  const shouldDisable = qtyInvalid || isDuplicateBatchSelected;
+  eolSubmitBtn.disabled = shouldDisable;
+  eolSubmitBtn.style.opacity = shouldDisable ? '0.5' : '1';
+}
+
 // Handle Batch Selection
 function selectBatch(batchId) {
   if (!batchDropdown) return;
@@ -349,9 +462,13 @@ function selectBatch(batchId) {
     // Clear auto-filled fields if no batch selected
     if (eolForm) eolForm.reset();
     batchTriggerText.textContent = 'Select Batch...';
+    setDuplicateBatchWarning(false);
     validateQuantities();
     return;
   }
+
+  // Block/warn immediately if this Batch ID was already submitted
+  setDuplicateBatchWarning(isBatchAlreadySubmitted(batchId));
 
   // Find the batch data
   const batchData = eolDataCache.production.find(item => item.batchId === batchId);
@@ -372,7 +489,7 @@ function selectBatch(batchId) {
     } else if (eolQcName) {
       eolQcName.value = '';
     }
-    showToast("Data auto-filled successfully");
+    if (!isDuplicateBatchSelected) showToast("Data auto-filled successfully");
   }
 }
 
@@ -386,14 +503,12 @@ function validateQuantities() {
   if (repairVal > checkedVal && repairVal > 0) {
     showToast("Warning: Repair QTY cannot exceed Checked QTY!");
     eolRepair.style.boxShadow = "inset 3px 4px 9px rgba(255,0,0,0.2), inset -2px -2px 7px rgba(255,255,255,0.9), 0 0 0 2.5px rgba(255,0,0,0.5)";
-    eolSubmitBtn.disabled = true;
-    eolSubmitBtn.style.opacity = '0.5';
   } else {
     // Reset warning style
     eolRepair.style.boxShadow = "";
-    eolSubmitBtn.disabled = false;
-    eolSubmitBtn.style.opacity = '1';
   }
+
+  refreshSubmitAvailability();
 }
 
 if (eolChecked) eolChecked.addEventListener('input', validateQuantities);
@@ -403,6 +518,7 @@ if (eolRepair) eolRepair.addEventListener('input', validateQuantities);
 if (eolResetBtn) {
   eolResetBtn.addEventListener('click', () => {
     setTimeout(() => {
+      setDuplicateBatchWarning(false);
       validateQuantities();
       if (batchTriggerText) batchTriggerText.textContent = 'Select Batch...';
       if (eolBatchInput) eolBatchInput.value = '';
@@ -427,6 +543,14 @@ if (eolForm) {
       return;
     }
 
+    // Block duplicate submissions — re-check right before sending in case
+    // the cached list changed since the batch was selected.
+    if (isBatchAlreadySubmitted(eolBatchInput.value)) {
+      setDuplicateBatchWarning(true);
+      return;
+    }
+
+    const submittedBatchId = eolBatchInput.value;
     const originalText = eolSubmitBtn.innerHTML;
     eolSubmitBtn.innerHTML = 'Saving...';
     eolSubmitBtn.disabled = true;
@@ -447,7 +571,8 @@ if (eolForm) {
       checkedQty: eolChecked ? eolChecked.value : '',
       repairQty: eolRepair ? eolRepair.value : '',
       whQty: eolWh ? eolWh.value : '',
-      reason: eolReason ? eolReason.value : ''
+      reason: eolReason ? eolReason.value : '',
+      submittedBy: localStorage.getItem('nimbus_username') || ''
     };
 
     try {
@@ -462,10 +587,22 @@ if (eolForm) {
       });
 
       // With no-cors, we can't read the response, so we assume success if no network error thrown.
+      // Record this batch as submitted locally right away, so re-selecting
+      // it later in this session is immediately flagged as a duplicate
+      // even before the next fetch from the sheet.
+      if (eolDataCache && eolDataCache.submittedBatchSet) {
+        eolDataCache.submittedBatchSet.add(submittedBatchId.toString().trim().toUpperCase());
+      }
+      if (eolDataCache) {
+        eolDataCache.eolEntryCount = (Number(eolDataCache.eolEntryCount) || 0) + 1;
+        animateEolStageCount(eolDataCache.eolEntryCount);
+      }
+
       showToast('Data saved successfully to Google Sheets!');
       eolForm.reset();
       if (batchTriggerText) batchTriggerText.textContent = 'Select Batch...';
       if (eolBatchInput) eolBatchInput.value = '';
+      setDuplicateBatchWarning(false);
       setTimeout(() => closeEolSheet(), 1500);
 
     } catch (error) {
@@ -484,3 +621,40 @@ openEolSheet = function () {
   originalOpenEolSheet();
   fetchEolData(); // fetch if not cached
 };
+
+// Also fetch on page load so the stage card's entry count is populated
+// right away, without waiting for the user to open the End of Line sheet.
+if (eolStageCountNum) {
+  fetchEolData();
+}
+
+// ---------- Silent auto-refresh for the entry count badge ----------
+// Every 5 seconds, quietly re-check how many entries exist in "END OF
+// LINE" (e.g. someone else may have submitted one) and animate the badge
+// to the new total. No toasts, no loading states, no disrupting whatever
+// the user is doing in the form.
+async function silentlyRefreshEolCount() {
+  try {
+    const response = await fetch(WEB_APP_URL);
+    const result = await response.json();
+    if (!result.success) return;
+
+    animateEolStageCount(result.eolEntryCount);
+
+    // Keep the duplicate-check list in sync too, so a batch someone else
+    // just submitted gets flagged here without needing a manual refresh.
+    if (eolDataCache) {
+      eolDataCache.eolEntryCount = result.eolEntryCount;
+      eolDataCache.submittedBatches = result.submittedBatches;
+      eolDataCache.submittedBatchSet = new Set(
+        (result.submittedBatches || []).map(id => id.toString().trim().toUpperCase())
+      );
+    }
+  } catch (error) {
+    // Silent by design — don't toast/log-spam the user for a background poll.
+  }
+}
+
+if (eolStageCountNum) {
+  setInterval(silentlyRefreshEolCount, 5000);
+}
