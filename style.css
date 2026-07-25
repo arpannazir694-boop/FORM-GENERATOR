@@ -354,6 +354,7 @@ body {
 
 /* ═══════════════ HERO ═══════════════ */
 .hero {
+  /* Fallback while the video loads / if it fails */
   background: linear-gradient(155deg, var(--hero-1), var(--hero-2));
   padding: 22px 22px 52px;
   position: relative;
@@ -363,6 +364,31 @@ body {
   box-shadow:
     0 16px 0 rgba(255, 255, 255, 0.06) inset,
     0 24px 40px rgba(20, 10, 70, 0.45);
+}
+
+/* Clips the video/overlay to the hero's rounded corners without clipping
+   .fab-sync, which intentionally overflows the hero's bottom edge. */
+.hero-video-wrap {
+  position: absolute;
+  inset: 0;
+  border-radius: 0 0 42px 42px;
+  overflow: hidden;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.hero-bg-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.hero-video-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(155deg, rgba(45, 30, 110, 0.72), rgba(19, 13, 61, 0.82));
 }
 
 .hero-dots {
@@ -375,6 +401,7 @@ body {
   background-size: 11px 11px;
   pointer-events: none;
   opacity: 0.7;
+  z-index: 1;
 }
 
 .hero-glow {
@@ -386,6 +413,7 @@ body {
   border-radius: 50%;
   background: radial-gradient(circle, rgba(160, 130, 255, 0.28), transparent 68%);
   pointer-events: none;
+  z-index: 1;
 }
 
 .hero-illustration {
@@ -460,6 +488,9 @@ body {
   cursor: pointer;
   color: var(--text-light);
   position: relative;
+  padding: 0;
+  outline: none;
+  font: inherit;
   box-shadow:
     0 2px 0 rgba(255, 255, 255, 0.14) inset,
     5px 6px 14px rgba(0, 0, 0, 0.35),
@@ -472,6 +503,15 @@ body {
   box-shadow:
     inset 3px 4px 8px rgba(0, 0, 0, 0.45),
     inset -2px -2px 7px rgba(255, 255, 255, 0.08);
+}
+
+.avatar-icon-video {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  border-radius: 50%;
+  pointer-events: none;
+  mix-blend-mode: screen;
 }
 
 /* Notification dot */
@@ -502,80 +542,6 @@ body {
   50% {
     box-shadow: 0 0 12px rgba(255, 80, 120, 0.95);
   }
-}
-
-.menu-panel {
-  position: absolute;
-  top: 54px;
-  right: 0;
-  background: linear-gradient(145deg, #f0ecff, #faf8ff);
-  color: var(--text-dark);
-  border-radius: 22px;
-  box-shadow: var(--clay-card);
-  padding: 8px;
-  display: none;
-  z-index: 20;
-  min-width: 170px;
-  overflow: hidden;
-}
-
-.menu-panel::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2.5px;
-  background: linear-gradient(90deg, var(--accent), var(--accent-light), #ffb3f7);
-  border-radius: 22px 22px 0 0;
-}
-
-.menu-panel.open {
-  display: block;
-  animation: riseIn .22s ease both;
-}
-
-.menu-panel button {
-  width: 100%;
-  text-align: left;
-  padding: 11px 14px;
-  border: none;
-  background: none;
-  border-radius: 14px;
-  font-family: 'Nunito', sans-serif;
-  font-size: 14px;
-  font-weight: 700;
-  cursor: pointer;
-  color: var(--text-dark);
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  transition: background .18s, color .18s;
-}
-
-.menu-panel button:hover {
-  background: rgba(124, 92, 240, 0.1);
-  color: var(--accent);
-}
-
-.mp-icon {
-  width: 28px;
-  height: 28px;
-  border-radius: 10px;
-  background: linear-gradient(145deg, #ede8ff, #fff);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  box-shadow:
-    3px 3px 7px rgba(90, 60, 200, 0.15),
-    -2px -2px 6px rgba(255, 255, 255, 0.85);
-  transition: background .18s;
-}
-
-.menu-panel button:hover .mp-icon {
-  background: linear-gradient(135deg, var(--accent), var(--accent-light));
-  color: #fff;
 }
 
 /* Hero text */
