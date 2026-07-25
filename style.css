@@ -739,9 +739,89 @@ body {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
+  transform-origin: top center;
+}
+
+/* .clay-grid sets display:grid unconditionally, which otherwise beats the
+   browser's default [hidden] { display:none } rule (same specificity, but
+   author styles win over UA styles). This higher-specificity rule makes
+   sure ANY .clay-grid (#stagesGrid or #kpiGrid) actually stays hidden
+   once main.js sets its `hidden` property. */
+.clay-grid[hidden] {
+  display: none;
+}
+
+/* ── Fold transition (Line Stages <-> Store/Warehouse KPIs) ── */
+@keyframes foldOut {
+  from {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+
+  to {
+    transform: scaleY(0.82);
+    opacity: 0;
+  }
+}
+
+@keyframes foldIn {
+  from {
+    transform: scaleY(0.82);
+    opacity: 0;
+  }
+
+  to {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+.clay-grid.fold-out {
+  animation: foldOut .22s ease forwards;
+}
+
+.clay-grid.fold-in {
+  animation: foldIn .32s cubic-bezier(.34, 1.56, .64, 1) forwards;
+}
+
+/* ── KPI cards (Store / Warehouse) ── */
+.kpi-card {
+  position: relative;
+  background: linear-gradient(145deg, var(--tint-a, #ede8ff), var(--tint-b, #f8f6ff));
+  border-radius: 28px;
+  padding: 16px 14px 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  font-family: 'Manrope', sans-serif;
+  box-shadow:
+    0 3px 0 rgba(255, 255, 255, 0.88) inset,
+    0 -2px 0 rgba(0, 0, 0, 0.04) inset,
+    8px 10px 24px var(--sh, rgba(108, 80, 240, 0.22)),
+    -6px -6px 16px rgba(255, 255, 255, 0.82);
+}
+
+.kpi-card h3 {
+  margin: 0;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 900;
+  font-size: 14px;
+  letter-spacing: 0.3px;
+  color: var(--text-dark);
+}
+
+.kpi-value {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 800;
+  font-size: 30px;
+  color: var(--ic, var(--accent));
+  letter-spacing: -0.5px;
+  margin-top: 2px;
 }
 
 .stage-card {
+  position: relative;
   background: linear-gradient(145deg, var(--tint-a, #ede8ff), var(--tint-b, #f8f6ff));
   border: none;
   border-radius: 28px;
@@ -809,6 +889,26 @@ body {
   font-size: 14px;
   letter-spacing: 0.3px;
   color: var(--text-dark);
+}
+
+.stage-count {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+}
+
+.stage-count-num {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 800;
+  font-size: 26px;
+  color: var(--ic, var(--accent));
+  letter-spacing: -0.5px;
+  display: inline-block;
+  transition: transform .2s cubic-bezier(.34, 1.56, .64, 1);
+}
+
+.stage-count-num.bump {
+  transform: scale(1.22);
 }
 
 .stage-footer {
@@ -1234,6 +1334,24 @@ body {
 
 .input-wrapper:focus-within .input-icon {
   color: #1e88e5;
+}
+
+/* ── Duplicate Batch ID warning ── */
+.batch-warning-msg {
+  display: none;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  color: #e53935;
+  margin-top: 2px;
+}
+
+.batch-warning-msg.show {
+  display: block;
+}
+
+.dropdown-trigger.is-duplicate {
+  box-shadow: inset 3px 4px 9px rgba(229, 57, 53, 0.2), inset -2px -2px 7px rgba(255, 255, 255, 0.9), 0 0 0 2.5px rgba(229, 57, 53, 0.5) !important;
 }
 
 /* ── Custom Searchable Dropdown ── */
