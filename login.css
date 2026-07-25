@@ -351,6 +351,57 @@ body::after {
   color: rgba(255, 255, 255, 0.55);
 }
 
+/* ═══════════════ PASSWORD SHOW/HIDE TOGGLE ═══════════════ */
+.pw-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.pw-wrapper input {
+  width: 100%;
+  padding-right: 46px;
+}
+
+.pw-toggle {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background .16s ease, color .16s ease;
+}
+
+.pw-toggle:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+}
+
+.pw-toggle:active {
+  transform: translateY(-50%) scale(0.9);
+}
+
+.pw-icon-hide {
+  display: none;
+}
+
+.pw-toggle.is-visible .pw-icon-show {
+  display: none;
+}
+
+.pw-toggle.is-visible .pw-icon-hide {
+  display: block;
+}
+
 /* ═══════════════ ERROR ═══════════════ */
 .error-msg {
   font-size: 12.5px;
