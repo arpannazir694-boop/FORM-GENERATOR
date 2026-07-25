@@ -214,6 +214,52 @@ const eolQcName = document.getElementById('eol_qcname');
 const eolEtd = document.getElementById('eol_etd');
 const eolCheckDate = document.getElementById('eol_checkdate');
 
+// ---------- DD/MM/YYYY display for date fields ----------
+// <input type="date">'s value is always ISO (YYYY-MM-DD) no matter what;
+// only its on-screen text follows the device/browser locale (often
+// MM/DD/YYYY on mobile). These helpers keep a same-looking overlay label
+// that always reads DD/MM/YYYY, in sync with the real input.
+function formatDDMMYYYY(isoStr) {
+  if (!isoStr) return '';
+  const m = isoStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!m) return '';
+  const [, y, mo, d] = m;
+  return `${d}/${mo}/${y}`;
+}
+
+function syncDateDisplay(inputEl, displayEl) {
+  if (!inputEl || !displayEl) return;
+  const formatted = formatDDMMYYYY(inputEl.value);
+  if (formatted) {
+    displayEl.textContent = formatted;
+    displayEl.classList.add('has-value');
+  } else {
+    displayEl.textContent = 'DD/MM/YYYY';
+    displayEl.classList.remove('has-value');
+  }
+}
+
+const eolEtdDisplay = document.getElementById('eol_etd_display');
+const eolCheckDateDisplay = document.getElementById('eol_checkdate_display');
+
+[[eolEtd, eolEtdDisplay], [eolCheckDate, eolCheckDateDisplay]].forEach(([input, display]) => {
+  if (!input || !display) return;
+  syncDateDisplay(input, display);
+  input.addEventListener('input', () => syncDateDisplay(input, display));
+  input.addEventListener('change', () => syncDateDisplay(input, display));
+});
+
+if (eolForm) {
+  // Native form.reset() clears input values without firing 'input'/'change'
+  // on them, so the overlay labels need their own refresh here.
+  eolForm.addEventListener('reset', () => {
+    setTimeout(() => {
+      syncDateDisplay(eolEtd, eolEtdDisplay);
+      syncDateDisplay(eolCheckDate, eolCheckDateDisplay);
+    }, 0);
+  });
+}
+
 const eolChecked = document.getElementById('eol_checked');
 const eolRepair = document.getElementById('eol_repair');
 const eolWh = document.getElementById('eol_wh');
@@ -318,6 +364,7 @@ function selectBatch(batchId) {
     if (eolUnit) eolUnit.value = batchData.unit || '';
     if (eolFabricator) eolFabricator.value = batchData.fabricator || '';
     if (eolEtd) eolEtd.value = batchData.etd || '';
+    syncDateDisplay(eolEtd, eolEtdDisplay);
 
     // Match QC Name based on Unit
     if (eolQcName && batchData.unit && eolDataCache.qcMapping) {
