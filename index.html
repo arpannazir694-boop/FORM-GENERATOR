@@ -178,13 +178,16 @@
     </div>
 
     <div class="content">
-      <div class="section-label">Line Stages</div>
+      <div class="section-label" id="stagesSectionLabel">Line Stages</div>
       <div class="section-accent"><span class="bar"></span><span class="dot"></span></div>
 
-      <div class="clay-grid">
+      <div class="clay-grid" id="stagesGrid">
 
         <button class="stage-card" data-label="End of Line"
           style="--tint-a:#dbe6ff; --tint-b:#f1f5ff; --ic:#3b6fef; --sh:rgba(59,111,239,0.22); --d:0s;">
+          <div class="stage-count" id="eolStageCount">
+            <span class="stage-count-num" id="eolStageCountNum">—</span>
+          </div>
           <span class="stage-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none">
               <path d="M6 3v18" stroke="var(--ic)" stroke-width="2" stroke-linecap="round" />
               <path d="M6 4h9l-2 3 2 3H6" fill="var(--ic)" />
@@ -249,6 +252,34 @@
               </svg></span>
           </div>
         </button>
+
+      </div>
+
+      <!-- KPI view (Store / Warehouse) — toggled in via the Quick Menu (fab) button.
+           Hidden by default; main.js swaps this with #stagesGrid on click. -->
+      <div class="clay-grid kpi-grid" id="kpiGrid" hidden>
+
+        <div class="kpi-card" style="--tint-a:#ffe0ec; --tint-b:#fff3f7; --ic:#ff5f96; --sh:rgba(255,95,150,0.22);">
+          <span class="stage-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+              <path d="M4 8l1.5-4h13L20 8" stroke="var(--ic)" stroke-width="1.8" stroke-linejoin="round" />
+              <path d="M4 8h16v11a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V8z" stroke="var(--ic)" stroke-width="1.8"
+                stroke-linejoin="round" />
+              <path d="M9 12a3 3 0 0 0 6 0" stroke="var(--ic)" stroke-width="1.8" stroke-linecap="round" />
+            </svg></span>
+          <h3>STORE</h3>
+          <div class="kpi-value" id="kpiStoreValue">—</div>
+        </div>
+
+        <div class="kpi-card" style="--tint-a:#d3f0ff; --tint-b:#eefaff; --ic:#17a2e0; --sh:rgba(23,162,224,0.22);">
+          <span class="stage-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+              <path d="M3 10l9-6 9 6" stroke="var(--ic)" stroke-width="1.8" stroke-linecap="round"
+                stroke-linejoin="round" />
+              <path d="M5 9v11h14V9" stroke="var(--ic)" stroke-width="1.8" stroke-linejoin="round" />
+              <path d="M9 20v-6h6v6" stroke="var(--ic)" stroke-width="1.8" stroke-linejoin="round" />
+            </svg></span>
+          <h3>WAREHOUSE</h3>
+          <div class="kpi-value" id="kpiWarehouseValue">—</div>
+        </div>
 
       </div>
 
@@ -355,6 +386,8 @@
 
                 <input type="hidden" id="eol_batch" name="eol_batch">
               </div>
+              <p class="batch-warning-msg" id="batchWarningMsg">This Batch ID has already been submitted to End of Line.
+              </p>
             </div>
             <div class="form-group">
               <label class="form-label">Style No.</label>
