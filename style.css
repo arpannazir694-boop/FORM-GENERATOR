@@ -388,7 +388,7 @@ body {
 .hero-video-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(155deg, rgba(45, 30, 110, 0.72), rgba(19, 13, 61, 0.82));
+  background: linear-gradient(155deg, rgba(45, 30, 110, 0.52), rgba(19, 13, 61, 0.62));
 }
 
 .hero-dots {
