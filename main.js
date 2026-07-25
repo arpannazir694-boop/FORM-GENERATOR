@@ -81,23 +81,10 @@ document.querySelectorAll('.side-item').forEach(btn => {
   btn.addEventListener('click', () => handleStageClick(btn));
 });
 
-// ---------- Avatar menu ----------
+// ---------- Avatar button = direct logout ----------
 const avatarBtn = document.getElementById('avatarBtn');
-const menuPanel = document.getElementById('menuPanel');
-if (avatarBtn && menuPanel) {
-  avatarBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    menuPanel.classList.toggle('open');
-  });
-  document.addEventListener('click', () => menuPanel.classList.remove('open'));
-}
-
-const profileBtn = document.getElementById('profileBtn');
-if (profileBtn) profileBtn.addEventListener('click', () => showToast('Profile settings coming soon'));
-
-const logoutBtn = document.getElementById('logoutBtn');
-if (logoutBtn) {
-  logoutBtn.addEventListener('click', () => {
+if (avatarBtn) {
+  avatarBtn.addEventListener('click', () => {
     localStorage.removeItem('nimbus_logged_in');
     localStorage.removeItem('nimbus_username');
     showToast('Logged out');
@@ -129,6 +116,19 @@ function showToast(msg) {
   toast.classList.add('show');
   clearTimeout(window._toastTimer);
   window._toastTimer = setTimeout(() => toast.classList.remove('show'), 1800);
+}
+
+// ---------- Password show/hide toggle (login.html) ----------
+const pwToggle = document.getElementById('pwToggle');
+const pwInput = document.getElementById('password');
+if (pwToggle && pwInput) {
+  pwToggle.addEventListener('click', () => {
+    const isVisible = pwInput.type === 'text';
+    pwInput.type = isVisible ? 'password' : 'text';
+    pwToggle.classList.toggle('is-visible', !isVisible);
+    pwToggle.setAttribute('aria-pressed', String(!isVisible));
+    pwToggle.setAttribute('aria-label', isVisible ? 'Show password' : 'Hide password');
+  });
 }
 
 // ---------- Login form (login.html) ----------
