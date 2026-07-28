@@ -169,7 +169,7 @@ if (pwToggle && pwInput) {
 // ---------- Login form (login.html) ----------
 // Uses the same web app URL / USERS sheet (Col A = username, Col B =
 // password, starting row 2) as the rest of the app.
-const LOGIN_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwrt8gRJvzEYANRPk3VR5bMH6BuKHWl6_N9fDbauFiYnWIaj-IKKsp9Q_MtP9-RdW8/exec";
+const LOGIN_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbydC0_cPM6D2Nct5GztT6alfevNfHESwNuL4-L4ehs-u4tkQUpLjGCiFHFtEtXTlIjj/exec";
 const loginForm = document.getElementById('loginForm');
 if (loginForm) {
   loginForm.addEventListener('submit', async (e) => {
@@ -226,7 +226,7 @@ if (loginForm) {
 // ==========================================
 // END OF LINE - AUTO-FILL & VALIDATION LOGIC
 // ==========================================
-const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwrt8gRJvzEYANRPk3VR5bMH6BuKHWl6_N9fDbauFiYnWIaj-IKKsp9Q_MtP9-RdW8/exec";
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbydC0_cPM6D2Nct5GztT6alfevNfHESwNuL4-L4ehs-u4tkQUpLjGCiFHFtEtXTlIjj/exec";
 let eolDataCache = null; // Store fetched data
 
 // ---------- Live entry count on the End of Line stage card ----------
@@ -259,6 +259,25 @@ function animateEolStageCount(target) {
     }
   }
   requestAnimationFrame(step);
+}
+
+// ---------- Today's entry count badge on the End of Line stage card ----------
+const eolTodayCountNum = document.getElementById('eolTodayCountNum');
+const eolTodayBar = document.getElementById('eolTodayBar');
+
+// Simply sets the badge text and gives it a quick "bump" for feedback —
+// no need for the number-ticker animation used on the bigger total badge.
+function updateEolTodayCount(target) {
+  if (!eolTodayCountNum) return;
+  const targetNum = Number(target) || 0;
+  const current = parseInt(eolTodayCountNum.textContent, 10) || 0;
+  eolTodayCountNum.textContent = targetNum;
+
+  if (current !== targetNum && eolTodayBar) {
+    eolTodayBar.classList.add('bump');
+    clearTimeout(eolTodayBar._bumpTimer);
+    eolTodayBar._bumpTimer = setTimeout(() => eolTodayBar.classList.remove('bump'), 260);
+  }
 }
 
 // Elements
@@ -334,6 +353,30 @@ const eolReason = document.getElementById('eol_reason');
 
 const eolSubmitBtn = document.querySelector('.form-btn-submit');
 const eolResetBtn = document.getElementById('eolResetBtn');
+const batchCompleteWarning = document.getElementById('batchCompleteWarning');
+
+function setBatchCompleteWarning(isComplete) {
+  if (!batchCompleteWarning) return;
+  batchCompleteWarning.hidden = !isComplete;
+
+  if (isComplete) {
+    batchCompleteWarning.classList.remove('pulse');
+    void batchCompleteWarning.offsetWidth;
+    batchCompleteWarning.classList.add('pulse');
+  }
+}
+
+function getCurrentUserEolEntryCount(data) {
+  const username = (localStorage.getItem('nimbus_username') || '').trim().toUpperCase();
+  if (!username || !data || !data.eolEntryCountsByUser) return 0;
+  return Number(data.eolEntryCountsByUser[username]) || 0;
+}
+
+function getCurrentUserEolTodayEntryCount(data) {
+  const username = (localStorage.getItem('nimbus_username') || '').trim().toUpperCase();
+  if (!username || !data || !data.eolTodayEntryCountsByUser) return 0;
+  return Number(data.eolTodayEntryCountsByUser[username]) || 0;
+}
 
 // Fetch Data
 async function fetchEolData() {
@@ -343,14 +386,11 @@ async function fetchEolData() {
     const response = await fetch(WEB_APP_URL);
     const result = await response.json();
     if (result.success) {
-      // Normalize already-submitted Batch IDs into a case/whitespace-
-      // insensitive Set for fast duplicate lookups.
-      result.submittedBatchSet = new Set(
-        (result.submittedBatches || []).map(id => id.toString().trim().toUpperCase())
-      );
       eolDataCache = result;
+      eolDataCache.eolEntryCount = getCurrentUserEolEntryCount(result);
       populateBatchDropdown(result.production);
-      animateEolStageCount(result.eolEntryCount);
+      animateEolStageCount(eolDataCache.eolEntryCount);
+      updateEolTodayCount(getCurrentUserEolTodayEntryCount(result));
       return result;
     } else {
       throw new Error(result.error || 'Failed to fetch data');
@@ -411,42 +451,18 @@ if (batchSearch && batchList) {
   });
 }
 
-// ---------- Duplicate Batch ID protection ----------
-const batchWarningMsg = document.getElementById('batchWarningMsg');
-let isDuplicateBatchSelected = false;
-
-// Checks the cached "already submitted" list. Case/whitespace-insensitive.
-function isBatchAlreadySubmitted(batchId) {
-  if (!batchId || !eolDataCache || !eolDataCache.submittedBatchSet) return false;
-  return eolDataCache.submittedBatchSet.has(batchId.toString().trim().toUpperCase());
-}
-
-// Shows/hides the inline warning + red highlight, and keeps the Submit
-// button's disabled state in sync with BOTH this check and the existing
-// Repair-vs-Checked quantity check (see validateQuantities below).
-function setDuplicateBatchWarning(isDuplicate) {
-  isDuplicateBatchSelected = isDuplicate;
-
-  if (batchWarningMsg) batchWarningMsg.classList.toggle('show', isDuplicate);
-  if (batchTrigger) batchTrigger.classList.toggle('is-duplicate', isDuplicate);
-
-  if (isDuplicate) {
-    showToast('This Batch ID has already been submitted to End of Line.');
-  }
-
-  refreshSubmitAvailability();
-}
-
-// Recomputes whether Submit should be disabled, combining the duplicate
-// check with the pre-existing Repair-vs-Checked quantity check.
+// Recomputes whether Submit should be disabled when Repair QTY exceeds
+// Checked QTY.
 function refreshSubmitAvailability() {
   if (!eolSubmitBtn) return;
 
+  const availableVal = eolQty ? (parseInt(eolQty.value, 10) || 0) : 0;
   const checkedVal = eolChecked ? (parseInt(eolChecked.value, 10) || 0) : 0;
   const repairVal = eolRepair ? (parseInt(eolRepair.value, 10) || 0) : 0;
-  const qtyInvalid = repairVal > checkedVal && repairVal > 0;
+  const noAvailableQuantity = Boolean(eolBatchInput && eolBatchInput.value) && availableVal <= 0;
+  const qtyInvalid = noAvailableQuantity || checkedVal > availableVal || (repairVal > checkedVal && repairVal > 0);
 
-  const shouldDisable = qtyInvalid || isDuplicateBatchSelected;
+  const shouldDisable = qtyInvalid;
   eolSubmitBtn.disabled = shouldDisable;
   eolSubmitBtn.style.opacity = shouldDisable ? '0.5' : '1';
 }
@@ -462,13 +478,10 @@ function selectBatch(batchId) {
     // Clear auto-filled fields if no batch selected
     if (eolForm) eolForm.reset();
     batchTriggerText.textContent = 'Select Batch...';
-    setDuplicateBatchWarning(false);
+    setBatchCompleteWarning(false);
     validateQuantities();
     return;
   }
-
-  // Block/warn immediately if this Batch ID was already submitted
-  setDuplicateBatchWarning(isBatchAlreadySubmitted(batchId));
 
   // Find the batch data
   const batchData = eolDataCache.production.find(item => item.batchId === batchId);
@@ -477,7 +490,17 @@ function selectBatch(batchId) {
     if (eolColour) eolColour.value = batchData.colour || '';
     if (eolPo) eolPo.value = batchData.po || '';
     if (eolSku) eolSku.value = batchData.sku || '';
-    if (eolQty) eolQty.value = batchData.quantity || '';
+    if (eolQty) {
+      eolQty.value = batchData.quantity || '';
+      eolQty.max = batchData.quantity || '';
+      eolQty.min = '0';
+    }
+    if (eolChecked) {
+      eolChecked.max = batchData.quantity || '';
+      eolChecked.min = '0';
+    }
+    if (eolRepair) eolRepair.min = '0';
+    if (eolWh) eolWh.value = batchData.quantity || '';
     if (eolUnit) eolUnit.value = batchData.unit || '';
     if (eolFabricator) eolFabricator.value = batchData.fabricator || '';
     if (eolEtd) eolEtd.value = batchData.etd || '';
@@ -489,7 +512,8 @@ function selectBatch(batchId) {
     } else if (eolQcName) {
       eolQcName.value = '';
     }
-    if (!isDuplicateBatchSelected) showToast("Data auto-filled successfully");
+    validateQuantities();
+    showToast("Data auto-filled successfully");
   }
 }
 
@@ -497,10 +521,25 @@ function selectBatch(batchId) {
 function validateQuantities() {
   if (!eolChecked || !eolRepair || !eolSubmitBtn) return;
 
+  const availableVal = eolQty ? (parseInt(eolQty.value, 10) || 0) : 0;
   const checkedVal = parseInt(eolChecked.value, 10) || 0;
   const repairVal = parseInt(eolRepair.value, 10) || 0;
+  const checkedInvalid = checkedVal > availableVal;
+  const repairInvalid = repairVal > checkedVal && repairVal > 0;
 
-  if (repairVal > checkedVal && repairVal > 0) {
+  if (eolChecked) eolChecked.max = availableVal || '';
+  if (eolRepair) eolRepair.max = checkedVal || '';
+  if (eolWh) eolWh.value = checkedVal > 0 ? Math.max(0, checkedVal - repairVal) : availableVal;
+  setBatchCompleteWarning(Boolean(eolBatchInput && eolBatchInput.value) && availableVal <= 0);
+
+  if (checkedInvalid) {
+    showToast("Warning: Checked QTY cannot exceed Available QTY!");
+    eolChecked.style.boxShadow = "inset 3px 4px 9px rgba(255,0,0,0.2), inset -2px -2px 7px rgba(255,255,255,0.9), 0 0 0 2.5px rgba(255,0,0,0.5)";
+  } else {
+    eolChecked.style.boxShadow = "";
+  }
+
+  if (repairInvalid) {
     showToast("Warning: Repair QTY cannot exceed Checked QTY!");
     eolRepair.style.boxShadow = "inset 3px 4px 9px rgba(255,0,0,0.2), inset -2px -2px 7px rgba(255,255,255,0.9), 0 0 0 2.5px rgba(255,0,0,0.5)";
   } else {
@@ -513,15 +552,16 @@ function validateQuantities() {
 
 if (eolChecked) eolChecked.addEventListener('input', validateQuantities);
 if (eolRepair) eolRepair.addEventListener('input', validateQuantities);
+if (eolQty) eolQty.addEventListener('input', validateQuantities);
 
 // Reset validation state on reset
 if (eolResetBtn) {
   eolResetBtn.addEventListener('click', () => {
     setTimeout(() => {
-      setDuplicateBatchWarning(false);
       validateQuantities();
       if (batchTriggerText) batchTriggerText.textContent = 'Select Batch...';
       if (eolBatchInput) eolBatchInput.value = '';
+      setBatchCompleteWarning(false);
       if (batchSearch) batchSearch.value = '';
       // Reset search filter
       if (batchList) {
@@ -545,12 +585,6 @@ if (eolForm) {
 
     // Block duplicate submissions — re-check right before sending in case
     // the cached list changed since the batch was selected.
-    if (isBatchAlreadySubmitted(eolBatchInput.value)) {
-      setDuplicateBatchWarning(true);
-      return;
-    }
-
-    const submittedBatchId = eolBatchInput.value;
     const originalText = eolSubmitBtn.innerHTML;
     eolSubmitBtn.innerHTML = 'Saving...';
     eolSubmitBtn.disabled = true;
@@ -587,23 +621,35 @@ if (eolForm) {
       });
 
       // With no-cors, we can't read the response, so we assume success if no network error thrown.
-      // Record this batch as submitted locally right away, so re-selecting
-      // it later in this session is immediately flagged as a duplicate
-      // even before the next fetch from the sheet.
-      if (eolDataCache && eolDataCache.submittedBatchSet) {
-        eolDataCache.submittedBatchSet.add(submittedBatchId.toString().trim().toUpperCase());
-      }
       if (eolDataCache) {
-        eolDataCache.eolEntryCount = (Number(eolDataCache.eolEntryCount) || 0) + 1;
+        const username = (localStorage.getItem('nimbus_username') || '').trim().toUpperCase();
+        eolDataCache.eolEntryCountsByUser = eolDataCache.eolEntryCountsByUser || {};
+        eolDataCache.eolTodayEntryCountsByUser = eolDataCache.eolTodayEntryCountsByUser || {};
+        if (username) {
+          eolDataCache.eolEntryCountsByUser[username] = (Number(eolDataCache.eolEntryCountsByUser[username]) || 0) + 1;
+          eolDataCache.eolTodayEntryCountsByUser[username] = (Number(eolDataCache.eolTodayEntryCountsByUser[username]) || 0) + 1;
+        }
+        eolDataCache.eolEntryCount = getCurrentUserEolEntryCount(eolDataCache);
         animateEolStageCount(eolDataCache.eolEntryCount);
+        updateEolTodayCount(getCurrentUserEolTodayEntryCount(eolDataCache));
+
+        // Keep the available balance current when the same Batch ID is
+        // selected again without reloading the page.
+        const whQuantity = Number(eolWh ? eolWh.value : 0) || 0;
+        const batchData = eolDataCache.production.find(item =>
+          item.batchId.toString().trim().toUpperCase() === eolBatchInput.value.toString().trim().toUpperCase()
+        );
+        if (batchData) {
+          const totalQuantity = Number(batchData.totalQuantity) || 0;
+          batchData.quantity = String(Math.max(0, totalQuantity - whQuantity));
+        }
       }
 
       showToast('Data saved successfully to Google Sheets!');
       eolForm.reset();
       if (batchTriggerText) batchTriggerText.textContent = 'Select Batch...';
       if (eolBatchInput) eolBatchInput.value = '';
-      setDuplicateBatchWarning(false);
-      setTimeout(() => closeEolSheet(), 1500);
+      setBatchCompleteWarning(false);
 
     } catch (error) {
       console.error('Submission Error:', error);
@@ -639,16 +685,16 @@ async function silentlyRefreshEolCount() {
     const result = await response.json();
     if (!result.success) return;
 
-    animateEolStageCount(result.eolEntryCount);
+    const currentUserEntryCount = getCurrentUserEolEntryCount(result);
+    const currentUserTodayCount = getCurrentUserEolTodayEntryCount(result);
+    animateEolStageCount(currentUserEntryCount);
+    updateEolTodayCount(currentUserTodayCount);
 
-    // Keep the duplicate-check list in sync too, so a batch someone else
-    // just submitted gets flagged here without needing a manual refresh.
     if (eolDataCache) {
-      eolDataCache.eolEntryCount = result.eolEntryCount;
-      eolDataCache.submittedBatches = result.submittedBatches;
-      eolDataCache.submittedBatchSet = new Set(
-        (result.submittedBatches || []).map(id => id.toString().trim().toUpperCase())
-      );
+      eolDataCache.eolEntryCount = currentUserEntryCount;
+      eolDataCache.eolEntryCountsByUser = result.eolEntryCountsByUser || {};
+      eolDataCache.eolTodayEntryCountsByUser = result.eolTodayEntryCountsByUser || {};
+      eolDataCache.production = result.production || eolDataCache.production;
     }
   } catch (error) {
     // Silent by design — don't toast/log-spam the user for a background poll.
