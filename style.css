@@ -927,6 +927,37 @@ body {
   opacity: 0.5;
 }
 
+/* Today's per-user entry count badge — replaces the plain dash on the
+   End of Line card, since that's the only stage with live submission data. */
+.stage-bar-today {
+  width: auto;
+  height: auto;
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--ic, var(--accent)) 14%, transparent);
+  opacity: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 4px 10px;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 800;
+  font-size: 10.5px;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  color: var(--ic, var(--accent));
+  transition: transform .2s cubic-bezier(.34, 1.56, .64, 1);
+}
+
+.stage-bar-today #eolTodayCountNum {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.stage-bar-today.bump {
+  transform: scale(1.12);
+}
+
 .stage-arrow {
   width: 36px;
   height: 36px;
@@ -1337,23 +1368,6 @@ body {
 }
 
 /* ── Duplicate Batch ID warning ── */
-.batch-warning-msg {
-  display: none;
-  font-family: 'Space Grotesk', sans-serif;
-  font-size: 11px;
-  font-weight: 700;
-  color: #e53935;
-  margin-top: 2px;
-}
-
-.batch-warning-msg.show {
-  display: block;
-}
-
-.dropdown-trigger.is-duplicate {
-  box-shadow: inset 3px 4px 9px rgba(229, 57, 53, 0.2), inset -2px -2px 7px rgba(255, 255, 255, 0.9), 0 0 0 2.5px rgba(229, 57, 53, 0.5) !important;
-}
-
 /* ── Custom Searchable Dropdown ── */
 .custom-dropdown {
   position: relative;
@@ -1614,4 +1628,189 @@ body {
 .form-btn-submit:active {
   transform: scale(0.95);
   box-shadow: inset 4px 5px 12px rgba(49, 27, 146, 0.35);
+}
+
+/* End of Line form polish */
+#eolSheet {
+  max-width: 460px;
+  background:
+    radial-gradient(circle at 100% 0, rgba(100, 181, 246, 0.23), transparent 34%),
+    linear-gradient(175deg, #f7fbff, #ffffff 42%);
+}
+
+#eolSheet .sheet-handle {
+  width: 52px;
+  background: linear-gradient(90deg, #90caf9, #42a5f5, #90caf9);
+}
+
+#eolSheet .sheet-header {
+  padding: 18px 22px 16px;
+  background: rgba(255, 255, 255, 0.64);
+}
+
+#eolSheet .sheet-header-icon {
+  border-radius: 16px;
+  transform: rotate(-4deg);
+}
+
+#eolSheet .sheet-title {
+  font-size: 20px;
+  letter-spacing: -0.45px;
+}
+
+#eolSheet .sheet-scroll-area {
+  padding: 20px 22px 26px;
+  gap: 18px;
+}
+
+#eolSheet .form-section-label {
+  width: max-content;
+  padding: 7px 11px;
+  border-radius: 999px;
+  background: #e8f4ff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  margin-top: 2px;
+}
+
+#eolSheet .form-section-label:nth-of-type(n + 2) {
+  color: #16875b;
+  background: #e8f8f1;
+}
+
+#eolSheet .form-group {
+  gap: 7px;
+}
+
+#eolSheet .form-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #486575;
+  letter-spacing: 0.1px;
+}
+
+#eolSheet .form-label::after {
+  content: '';
+  height: 1px;
+  flex: 1;
+  background: linear-gradient(90deg, rgba(100, 181, 246, 0.26), transparent);
+}
+
+#eolSheet .form-input,
+#eolSheet .dropdown-trigger {
+  min-height: 46px;
+  border: 1px solid rgba(100, 181, 246, 0.12);
+  background: linear-gradient(145deg, #eaf6ff, #f8fcff);
+  transition: transform .18s ease, box-shadow .2s ease, border-color .2s ease, background .2s ease;
+}
+
+#eolSheet .form-input:hover,
+#eolSheet .dropdown-trigger:hover {
+  border-color: rgba(66, 165, 245, 0.34);
+  background: #ffffff;
+}
+
+#eolSheet .form-input:focus,
+#eolSheet .custom-dropdown.open .dropdown-trigger {
+  transform: translateY(-1px);
+  border-color: rgba(33, 150, 243, 0.56);
+  background: #ffffff;
+  box-shadow: 0 8px 18px rgba(66, 165, 245, 0.14), 0 0 0 3px rgba(66, 165, 245, 0.13);
+}
+
+#eolSheet .form-textarea {
+  min-height: 78px;
+}
+
+#eolSheet #eol_wh[readonly] {
+  cursor: not-allowed;
+  color: #1565c0;
+  background: linear-gradient(145deg, #e6f4ff, #f3faff);
+  border-color: rgba(66, 165, 245, 0.28);
+}
+
+.batch-complete-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  padding: 13px 14px;
+  border: 1px solid rgba(255, 152, 0, 0.35);
+  border-radius: 16px;
+  color: #8a4b00;
+  background: linear-gradient(135deg, #fff6dd, #fffdf7);
+  box-shadow: 0 8px 18px rgba(255, 152, 0, 0.12);
+}
+
+.batch-complete-warning[hidden] {
+  display: none;
+}
+
+.batch-complete-warning__icon {
+  display: grid;
+  place-items: center;
+  width: 25px;
+  height: 25px;
+  flex: 0 0 25px;
+  border-radius: 50%;
+  color: #ffffff;
+  background: linear-gradient(135deg, #ff9800, #f57c00);
+  font-weight: 800;
+}
+
+.batch-complete-warning strong {
+  display: block;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 13px;
+}
+
+.batch-complete-warning p {
+  margin: 3px 0 0;
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.batch-complete-warning.pulse {
+  animation: batchCompletePulse 1.15s ease-in-out 2;
+}
+
+@keyframes batchCompletePulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 8px 18px rgba(255, 152, 0, 0.12); }
+  50% { transform: scale(1.018); box-shadow: 0 0 0 7px rgba(255, 152, 0, 0.15), 0 12px 24px rgba(255, 152, 0, 0.2); }
+}
+
+#eolSheet .form-divider {
+  height: 1px;
+  margin: 2px 0;
+  background: linear-gradient(90deg, transparent, rgba(33, 150, 243, 0.32), transparent);
+}
+
+#eolSheet .form-actions-sticky {
+  padding: 15px 22px calc(20px + env(safe-area-inset-bottom));
+  border-top: 1px solid rgba(100, 181, 246, 0.16);
+  background: rgba(247, 251, 255, 0.96);
+  box-shadow: 0 -10px 24px rgba(42, 116, 172, 0.06);
+}
+
+#eolSheet .form-btn-reset,
+#eolSheet .form-btn-submit {
+  min-height: 50px;
+  border-radius: 16px;
+}
+
+#eolSheet .form-btn-submit {
+  background: linear-gradient(135deg, #1565c0, #42a5f5);
+  box-shadow: 0 3px 0 rgba(255, 255, 255, 0.28) inset, 0 -2px 0 rgba(0, 0, 0, 0.1) inset, 0 10px 20px rgba(33, 150, 243, 0.3);
+}
+
+@media (max-width: 360px) {
+  #eolSheet .sheet-scroll-area,
+  #eolSheet .form-actions-sticky {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  #eolSheet .form-row-2 {
+    gap: 9px;
+  }
 }
