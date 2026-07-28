@@ -194,7 +194,8 @@
             </svg></span>
           <h3>END OF LINE</h3>
           <div class="stage-footer">
-            <span class="stage-bar"></span>
+            <span class="stage-bar stage-bar-today" id="eolTodayBar">Today <span
+                id="eolTodayCountNum">0</span></span>
             <span class="stage-arrow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                 <path d="M5 12h14M13 6l6 6-6 6" stroke="var(--ic)" stroke-width="2" stroke-linecap="round"
                   stroke-linejoin="round" />
@@ -354,6 +355,14 @@
             <span class="fs-dot" style="background:#42a5f5;"></span>Order Information
           </div>
 
+          <div class="batch-complete-warning" id="batchCompleteWarning" role="alert" hidden>
+            <span class="batch-complete-warning__icon" aria-hidden="true">✓</span>
+            <div>
+              <strong>Warehouse transfer complete</strong>
+              <p>All quantity for this Batch ID has already been sent to the warehouse.</p>
+            </div>
+          </div>
+
           <div class="form-row-2">
             <div class="form-group">
               <label class="form-label">Batch ID</label>
@@ -386,8 +395,6 @@
 
                 <input type="hidden" id="eol_batch" name="eol_batch">
               </div>
-              <p class="batch-warning-msg" id="batchWarningMsg">This Batch ID has already been submitted to End of Line.
-              </p>
             </div>
             <div class="form-group">
               <label class="form-label">Style No.</label>
@@ -413,7 +420,7 @@
               </div>
             </div>
             <div class="form-group">
-              <label class="form-label">Quantity</label>
+              <label class="form-label">Available Qty</label>
               <div class="input-wrapper">
                 <span class="input-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none">
                     <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2" />
@@ -492,7 +499,7 @@
             </div>
             <div class="form-group">
               <label class="form-label">Sent to WH</label>
-              <input type="number" class="form-input form-input--blue" id="eol_wh" placeholder="0">
+              <input type="number" class="form-input form-input--blue" id="eol_wh" placeholder="0" readonly aria-readonly="true">
             </div>
           </div>
 
