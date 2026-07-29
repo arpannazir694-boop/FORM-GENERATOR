@@ -39,6 +39,327 @@ if (syncBtn) {
   syncBtn.addEventListener('click', toggleStagesView);
 }
 
+// ---------- My Reports ----------
+const myReportsBtn = document.getElementById('myReportsBtn');
+const reportsSheet = document.getElementById('reportsSheet');
+const reportsOverlay = document.getElementById('reportsOverlay');
+const reportsCloseBtn = document.getElementById('reportsCloseBtn');
+const reportsFromDate = document.getElementById('reportsFromDate');
+const reportsToDate = document.getElementById('reportsToDate');
+const reportsClearFilter = document.getElementById('reportsClearFilter');
+const reportsEntryCount = document.getElementById('reportsEntryCount');
+const reportsTableCount = document.getElementById('reportsTableCount');
+const reportsTableBody = document.getElementById('reportsTableBody');
+const reportsDateNote = document.getElementById('reportsDateNote');
+const exportExcelBtn = document.getElementById('exportExcelBtn');
+const exportPdfBtn = document.getElementById('exportPdfBtn');
+let reportEntries = [];
+
+function escapeHtml(value) {
+  return String(value == null ? '' : value).replace(/[&<>'"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[char]);
+}
+
+function displayReportDate(value) {
+  if (!value) return '—';
+  const parts = String(value).slice(0, 10).split('-');
+  return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : value;
+}
+
+function renderReports() {
+  if (!reportsTableBody) return;
+  const from = reportsFromDate ? reportsFromDate.value : '';
+  const to = reportsToDate ? reportsToDate.value : '';
+  const visibleEntries = reportEntries.filter(entry => (!from || entry.checkDate >= from) && (!to || entry.checkDate <= to));
+  if (reportsEntryCount) reportsEntryCount.textContent = visibleEntries.length;
+  if (reportsTableCount) reportsTableCount.textContent = `${visibleEntries.length} ${visibleEntries.length === 1 ? 'entry' : 'entries'}`;
+  if (reportsDateNote) reportsDateNote.textContent = from || to ? 'Filtered range' : 'All time';
+  reportsTableBody.innerHTML = visibleEntries.length ? visibleEntries.map(entry => `<tr><td>${escapeHtml(entry.batchId)}</td><td>${escapeHtml(entry.style)}</td><td>${escapeHtml(entry.colour)}</td><td>${escapeHtml(displayReportDate(entry.checkDate))}</td><td>${escapeHtml(entry.checkedQty)}</td><td>${escapeHtml(entry.repairQty)}</td><td>${escapeHtml(entry.whQty)}</td><td>${escapeHtml(entry.availableQty)}</td></tr>`).join('') : '<tr><td colspan="8" class="reports-state">No entries found for this date range.</td></tr>';
+}
+
+function getFilteredReportEntries() {
+  const from = reportsFromDate ? reportsFromDate.value : '';
+  const to = reportsToDate ? reportsToDate.value : '';
+  return reportEntries.filter(entry => (!from || entry.checkDate >= from) && (!to || entry.checkDate <= to));
+}
+
+function reportExportRows() {
+  // getFilteredReportEntries() comes back newest-first (server reverses it
+  // for the "My Reports" view), so flip it back to the original chronological
+  // entry order here — the last entry made should be the last row, not the
+  // first one, in exported tables (Excel/PDF).
+  return getFilteredReportEntries().slice().reverse().map(entry => ({
+    'Batch ID': entry.batchId || '',
+    Style: entry.style || '',
+    Colour: entry.colour || '',
+    'Check Date': displayReportDate(entry.checkDate),
+    'Checked Qty': Number(entry.checkedQty) || 0,
+    'Repair Qty': Number(entry.repairQty) || 0,
+    'WH Qty': Number(entry.whQty) || 0,
+    'Avl. Qty': Number(entry.availableQty) || 0
+  }));
+}
+
+function reportFileSuffix() {
+  const from = reportsFromDate && reportsFromDate.value;
+  const to = reportsToDate && reportsToDate.value;
+  return from || to ? `${from || 'start'}_to_${to || 'today'}` : new Date().toISOString().slice(0, 10);
+}
+
+function exportReportsExcel() {
+  const rows = reportExportRows();
+  if (!rows.length) return showToast('No report entries available to export.');
+  if (!window.XLSX) return showToast('Excel export is loading. Please try again.');
+  const workbook = XLSX.utils.book_new();
+  const worksheet = XLSX.utils.json_to_sheet(rows);
+  worksheet['!cols'] = [14, 16, 16, 14, 14, 13, 11, 11].map(width => ({ wch: width }));
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'My Reports');
+  XLSX.writeFile(workbook, `My_Reports_${reportFileSuffix()}.xlsx`);
+  showToast('Excel report downloaded.');
+}
+
+// Computes the KPI figures shown on the stylish PDF report banner, from
+// whatever set of entries is currently in view (already date-filtered).
+function computeReportKpis(entries) {
+  let totalChecked = 0, totalRepair = 0, totalWh = 0;
+
+  entries.forEach(entry => {
+    const checked = Number(entry.checkedQty) || 0;
+    const repair = Number(entry.repairQty) || 0;
+    const wh = Number(entry.whQty) || 0;
+
+    totalChecked += checked;
+    totalRepair += repair;
+    totalWh += wh;
+  });
+
+  return {
+    totalBatchesChecked: entries.length,
+    totalChecked,
+    totalRepair,
+    totalWh,
+    // "Total Available Qty" = for each batch, take its LAST entry (by check
+    // date) and sum that entry's Available Qty across all batches — not a
+    // sum of every entry's available qty.
+    totalAvl: computeLastEntryAvailableQtySum(entries),
+    // "Repair (%)" = total repaired qty as a percentage of total checked qty.
+    repairPercent: totalChecked ? (totalRepair / totalChecked) * 100 : 0
+  };
+}
+
+// For each batch, finds the LAST entry made (true submission order) and
+// sums that entry's Available Qty across batches.
+//
+// `entries` comes in newest-first (the server reverses the whole sheet for
+// display), so entries belonging to the same batch also appear in
+// reverse-chronological order relative to each other. Comparing checkDate
+// alone isn't reliable here since multiple entries for a batch are often
+// logged on the same date — so instead we flip to chronological order and
+// simply let each later occurrence overwrite the previous one per batch;
+// whichever entry is processed last for a batch IS that batch's last entry.
+function computeLastEntryAvailableQtySum(entries) {
+  const chronological = entries.slice().reverse();
+  const lastByBatch = new Map();
+  chronological.forEach(entry => {
+    lastByBatch.set(entry.batchId || '', entry);
+  });
+  let total = 0;
+  lastByBatch.forEach(entry => { total += Number(entry.availableQty) || 0; });
+  return total;
+}
+
+// A single KPI card's markup — column wrapper + card, sized to sit 3-per-row.
+function kpiCardHtml(label, value, suffix) {
+  return `
+    <div style="width:33.333%;box-sizing:border-box;padding:6px;">
+      <div style="background:#f7f5ff;border:2px solid #b9a3ff;border-radius:14px;padding:14px 12px;box-shadow:0 2px 6px rgba(90,60,200,0.08);text-align:center;">
+        <div style="font-family:'IBM Plex Sans',sans-serif;font-size:10.5px;color:#8b81ab;font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;text-align:center;">${escapeHtml(label)}</div>
+        <div style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:22px;color:#4527a0;text-align:center;">${escapeHtml(String(value))}${suffix}</div>
+      </div>
+    </div>`;
+}
+
+// Formats a Date as dd/mm/yyyy, hh:mm:ss AM/PM for the PDF banner.
+function formatGeneratedTimestamp(date) {
+  const pad = n => String(n).padStart(2, '0');
+  const dd = pad(date.getDate());
+  const mm = pad(date.getMonth() + 1);
+  const yyyy = date.getFullYear();
+  let hours = date.getHours();
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  hours = hours % 12;
+  if (hours === 0) hours = 12;
+  const hh = pad(hours);
+  const min = pad(date.getMinutes());
+  const ss = pad(date.getSeconds());
+  return `${dd}/${mm}/${yyyy}, ${hh}:${min}:${ss} ${ampm}`;
+}
+
+// Builds the off-screen banner (company letterhead + KPI cards) that gets
+// snapshotted via html2canvas and dropped into the PDF as an image — this
+// is what lets the report actually use Space Grotesk / IBM Plex Sans,
+// since jsPDF's native text can only use its built-in PDF fonts.
+function buildPdfReportBanner(kpis, rangeLabel) {
+  const wrap = document.createElement('div');
+  wrap.style.position = 'fixed';
+  wrap.style.left = '-10000px';
+  wrap.style.top = '0';
+  wrap.style.width = '700px';
+  wrap.style.background = '#ffffff';
+  wrap.style.padding = '26px 28px 20px';
+  wrap.style.boxSizing = 'border-box';
+  wrap.style.fontFamily = "'IBM Plex Sans', sans-serif";
+
+  wrap.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <div style="display:flex;align-items:center;">
+        <img src="https://res.cloudinary.com/dnrgcigsj/image/upload/v1776343593/Screenshot_2026-03-06_181454-removebg-preview_hixdkx.png" alt="Logo" style="height:52px;width:auto;object-fit:contain;" crossorigin="anonymous" />
+        <div style="margin-left:14px;">
+          <div style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:21px;color:#241a4d;line-height:1.2;">Trio Trend Exports Pvt. Ltd.</div>
+          <div style="font-size:12px;color:#8b81ab;font-weight:600;margin-top:2px;">FMS Workspace &middot; End of Line Report</div>
+        </div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-size:11px;color:#a79ecb;font-weight:600;text-transform:uppercase;letter-spacing:.5px;">Generated</div>
+        <div style="font-size:12.5px;color:#4b3f7a;font-weight:700;">${escapeHtml(formatGeneratedTimestamp(new Date()))}</div>
+        <div style="font-size:11px;color:#a79ecb;font-weight:600;margin-top:4px;">${escapeHtml(rangeLabel)}</div>
+      </div>
+    </div>
+    <div style="height:3px;border-radius:2px;background:linear-gradient(90deg,#4527a0,#7c5cf0,#c9b8ff);margin-bottom:16px;"></div>
+    <div style="display:flex;flex-wrap:wrap;margin:-6px;">
+      ${kpiCardHtml('Total Batches Checked', kpis.totalBatchesChecked, '')}
+      ${kpiCardHtml('Total Checked Qty', kpis.totalChecked, '')}
+      ${kpiCardHtml('Total Repair Qty', kpis.totalRepair, '')}
+      ${kpiCardHtml('Total Sent to WH', kpis.totalWh, '')}
+      ${kpiCardHtml('Total Available Qty', kpis.totalAvl, '')}
+      ${kpiCardHtml('Repair (%)', kpis.repairPercent.toFixed(1), '%')}
+    </div>`;
+
+  document.body.appendChild(wrap);
+  return wrap;
+}
+
+async function exportReportsPdf() {
+  const entries = getFilteredReportEntries();
+  if (!entries.length) return showToast('No report entries available to export.');
+  if (!window.jspdf || !window.jspdf.jsPDF) return showToast('PDF export is loading. Please try again.');
+  if (!window.html2canvas) return showToast('PDF export is loading. Please try again.');
+
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+  const from = reportsFromDate && reportsFromDate.value ? displayReportDate(reportsFromDate.value) : 'All time';
+  const to = reportsToDate && reportsToDate.value ? displayReportDate(reportsToDate.value) : 'Today';
+  const rangeLabel = `${from} — ${to}`;
+
+  const kpis = computeReportKpis(entries);
+  const banner = buildPdfReportBanner(kpis, rangeLabel);
+
+  // Make sure the Google Fonts have actually finished loading before we
+  // snapshot the banner, otherwise it can get captured with a fallback font.
+  if (document.fonts && document.fonts.ready) {
+    try { await document.fonts.ready; } catch (err) { /* ignore */ }
+  }
+
+  const imgWidthMm = 182; // A4 width (210mm) minus 14mm margins on each side
+  let bannerHeightMm = 0;
+
+  try {
+    const canvas = await html2canvas(banner, { scale: 2, backgroundColor: '#ffffff', useCORS: true });
+    bannerHeightMm = canvas.height * imgWidthMm / canvas.width;
+    pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 14, 12, imgWidthMm, bannerHeightMm);
+  } catch (err) {
+    // If the banner snapshot fails for any reason, fall back to plain text
+    // so the export still works — just without the fancy fonts/KPI cards.
+    console.error('PDF banner render failed, falling back to plain header:', err);
+    pdf.setTextColor(69, 39, 160);
+    pdf.setFontSize(16);
+    pdf.text('Trio Trend Exports Pvt. Ltd. — End of Line Report', 14, 20);
+    bannerHeightMm = 12;
+  } finally {
+    banner.remove();
+  }
+
+  const rows = reportExportRows();
+  pdf.autoTable({
+    startY: 12 + bannerHeightMm + 8,
+    head: [['Batch ID', 'Style', 'Colour', 'Check Date', 'Checked Qty', 'Repair Qty', 'WH Qty', 'Avl. Qty']],
+    body: rows.map(row => [row['Batch ID'], row.Style, row.Colour, row['Check Date'], row['Checked Qty'], row['Repair Qty'], row['WH Qty'], row['Avl. Qty']]),
+    theme: 'grid',
+    headStyles: { fillColor: [76, 39, 160], textColor: [255, 255, 255], fontStyle: 'bold', halign: 'center', lineWidth: 0.3, lineColor: [60, 30, 130] },
+    styles: { fontSize: 8.5, cellPadding: 2.6, halign: 'center', lineWidth: 0.3, lineColor: [120, 100, 180] },
+    alternateRowStyles: { fillColor: [247, 245, 255] },
+    margin: { top: 20, left: 14, right: 14, bottom: 18 },
+    didDrawPage: function (data) {
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      pdf.setFontSize(8);
+      pdf.setTextColor(150, 140, 190);
+      pdf.text('Trio Trend Exports Pvt. Ltd. — FMS Workspace', 14, pageHeight - 8);
+      pdf.text(`Page ${data.pageNumber}`, pageWidth - 24, pageHeight - 8);
+    }
+  });
+
+  pdf.save(`My_Reports_${reportFileSuffix()}.pdf`);
+  showToast('Stylish PDF report downloaded.');
+}
+
+async function loadMyReports() {
+  if (!reportsTableBody) return;
+  reportsTableBody.innerHTML = '<tr><td colspan="8" class="reports-state">Loading your entries…</td></tr>';
+  try {
+    const username = localStorage.getItem('nimbus_username') || '';
+    const response = await fetch(`${WEB_APP_URL}?action=reports&username=${encodeURIComponent(username)}`);
+    const result = await response.json();
+    if (!result.success) throw new Error(result.error || 'Could not load reports');
+    reportEntries = Array.isArray(result.entries) ? result.entries : [];
+    renderReports();
+  } catch (error) {
+    reportsTableBody.innerHTML = '<tr><td colspan="8" class="reports-state">Unable to load entries. Please try again.</td></tr>';
+    if (reportsEntryCount) reportsEntryCount.textContent = '—';
+    if (reportsTableCount) reportsTableCount.textContent = 'Unavailable';
+  }
+}
+
+function openReportsSheet() {
+  if (!reportsSheet || !reportsOverlay) return;
+  reportsSheet.classList.add('open');
+  reportsSheet.setAttribute('aria-hidden', 'false');
+  reportsOverlay.classList.add('open');
+  loadMyReports();
+}
+
+function closeReportsSheet() {
+  if (!reportsSheet || !reportsOverlay) return;
+  reportsSheet.classList.remove('open');
+  reportsSheet.setAttribute('aria-hidden', 'true');
+  reportsOverlay.classList.remove('open');
+}
+
+if (myReportsBtn) {
+  myReportsBtn.addEventListener('click', (event) => {
+    event.stopPropagation();
+    openReportsSheet();
+  });
+  myReportsBtn.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      event.stopPropagation();
+      openReportsSheet();
+    }
+  });
+}
+if (reportsCloseBtn) reportsCloseBtn.addEventListener('click', closeReportsSheet);
+if (reportsOverlay) reportsOverlay.addEventListener('click', closeReportsSheet);
+if (reportsFromDate) reportsFromDate.addEventListener('change', renderReports);
+if (reportsToDate) reportsToDate.addEventListener('change', renderReports);
+if (reportsClearFilter) reportsClearFilter.addEventListener('click', () => {
+  if (reportsFromDate) reportsFromDate.value = '';
+  if (reportsToDate) reportsToDate.value = '';
+  renderReports();
+});
+if (exportExcelBtn) exportExcelBtn.addEventListener('click', exportReportsExcel);
+if (exportPdfBtn) exportPdfBtn.addEventListener('click', exportReportsPdf);
+
 // ---------- Notification bell ----------
 const bellBtn = document.getElementById('bellBtn');
 if (bellBtn) {
@@ -583,8 +904,6 @@ if (eolForm) {
       return;
     }
 
-    // Block duplicate submissions — re-check right before sending in case
-    // the cached list changed since the batch was selected.
     const originalText = eolSubmitBtn.innerHTML;
     eolSubmitBtn.innerHTML = 'Saving...';
     eolSubmitBtn.disabled = true;
@@ -610,17 +929,24 @@ if (eolForm) {
     };
 
     try {
-      // POST request to Web App using no-cors to prevent browser block
-      await fetch(WEB_APP_URL, {
+      // POST request to Web App — no 'mode: no-cors' here anymore, so we can
+      // actually read back whether the server saved the row or rejected it
+      // (e.g. duplicate Batch ID, sheet error, etc). Content-Type stays
+      // 'text/plain' so this remains a "simple request" and doesn't trigger
+      // a CORS preflight that Apps Script can't handle.
+      const response = await fetch(WEB_APP_URL, {
         method: 'POST',
-        mode: 'no-cors',
         headers: {
           'Content-Type': 'text/plain'
         },
         body: JSON.stringify(formData)
       });
+      const result = await response.json();
 
-      // With no-cors, we can't read the response, so we assume success if no network error thrown.
+      if (!result.success) {
+        throw new Error(result.error || 'Could not save entry. Please try again.');
+      }
+
       if (eolDataCache) {
         const username = (localStorage.getItem('nimbus_username') || '').trim().toUpperCase();
         eolDataCache.eolEntryCountsByUser = eolDataCache.eolEntryCountsByUser || {};
@@ -640,8 +966,13 @@ if (eolForm) {
           item.batchId.toString().trim().toUpperCase() === eolBatchInput.value.toString().trim().toUpperCase()
         );
         if (batchData) {
-          const totalQuantity = Number(batchData.totalQuantity) || 0;
-          batchData.quantity = String(Math.max(0, totalQuantity - whQuantity));
+          // batchData.quantity already reflects (batch qty - WH qty sent so
+          // far), as computed by the server. Subtract just this submission's
+          // WH qty from that running available balance — NOT from the full
+          // original batch quantity — so repeated submissions for the same
+          // batch keep shrinking correctly instead of resetting.
+          const currentAvailable = Number(batchData.quantity) || 0;
+          batchData.quantity = String(Math.max(0, currentAvailable - whQuantity));
         }
       }
 
@@ -653,7 +984,7 @@ if (eolForm) {
 
     } catch (error) {
       console.error('Submission Error:', error);
-      showToast('Error saving data. Please check your internet connection.');
+      showToast(error && error.message ? error.message : 'Error saving data. Please check your internet connection.');
     } finally {
       eolSubmitBtn.innerHTML = originalText;
       eolSubmitBtn.disabled = false;
