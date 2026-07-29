@@ -6,6 +6,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <title>FMS Workspace</title>
   <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;700;800&display=swap" rel="stylesheet">
   <script>
     // Auth guard: bounce to the login page if not signed in.
     if (!localStorage.getItem('nimbus_logged_in')) {
@@ -192,6 +195,12 @@
               <path d="M6 3v18" stroke="var(--ic)" stroke-width="2" stroke-linecap="round" />
               <path d="M6 4h9l-2 3 2 3H6" fill="var(--ic)" />
             </svg></span>
+          <span class="eol-reports-action" id="myReportsBtn" role="button" tabindex="0" aria-label="Open My Reports" title="My Reports">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M7 3h7l4 4v14H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" />
+              <path d="M14 3v5h5M9 13h6M9 17h4" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" />
+            </svg>
+          </span>
           <h3>END OF LINE</h3>
           <div class="stage-footer">
             <span class="stage-bar stage-bar-today" id="eolTodayBar">Today <span
@@ -322,6 +331,33 @@
     <div class="toast" id="toast"></div>
 
     <!-- ═══ END OF LINE FORM SHEET ═══ -->
+    <!-- MY REPORTS SHEET -->
+    <div class="sheet-overlay" id="reportsOverlay"></div>
+    <section class="form-sheet reports-sheet" id="reportsSheet" aria-label="My Reports" aria-hidden="true">
+      <div class="sheet-handle"></div>
+      <header class="sheet-header reports-sheet-header">
+        <div class="sheet-header-icon reports-header-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M5 20V10M12 20V4M19 20v-7" /></svg></div>
+        <div><h2 class="sheet-title">My Reports</h2><p class="sheet-sub">Your End of Line entries</p></div>
+        <button class="sheet-close-btn" id="reportsCloseBtn" type="button" aria-label="Close reports"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" /></svg></button>
+      </header>
+      <div class="reports-scroll-area">
+        <div class="reports-summary"><span class="reports-summary-icon"><svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M7 3h7l4 4v14H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" stroke="currentColor" stroke-width="1.9" /><path d="M14 3v5h5" stroke="currentColor" stroke-width="1.9" /></svg></span><div><span class="reports-summary-label">Total entries</span><strong id="reportsEntryCount">0</strong></div><span class="reports-summary-note" id="reportsDateNote">All time</span></div>
+        <div class="reports-filter"><div><label for="reportsFromDate">From</label><input type="date" id="reportsFromDate"></div><span class="reports-filter-line"></span><div><label for="reportsToDate">To</label><input type="date" id="reportsToDate"></div><button id="reportsClearFilter" type="button">Clear</button></div>
+        <div class="reports-table-heading"><span>Entry details</span><small id="reportsTableCount">0 entries</small></div>
+        <div class="reports-export-actions">
+          <button class="reports-export-btn reports-export-btn--excel" id="exportExcelBtn" type="button">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 3h10a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" stroke="currentColor" stroke-width="1.8"/><path d="M9 9l6 6m0-6l-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            Excel (.xlsx)
+          </button>
+          <button class="reports-export-btn reports-export-btn--pdf" id="exportPdfBtn" type="button">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 3h7l4 4v14H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" stroke="currentColor" stroke-width="1.8"/><path d="M14 3v5h5M9 16h6M9 12h3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            PDF
+          </button>
+        </div>
+        <div class="reports-table-wrap"><table class="reports-table"><thead><tr><th>Batch ID</th><th>Style</th><th>Colour</th><th>Check Date</th><th>Checked Qty</th><th>Repair Qty</th><th>WH Qty</th><th>Avl. Qty</th></tr></thead><tbody id="reportsTableBody"><tr><td colspan="8" class="reports-state">Loading your entries…</td></tr></tbody></table></div>
+      </div>
+    </section>
+
     <div class="sheet-overlay" id="eolOverlay"></div>
     <div class="form-sheet" id="eolSheet">
 
@@ -520,6 +556,10 @@
 
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script src="main.js"></script>
 </body>
 
