@@ -1,3 +1,36 @@
+// ---------- Access control (per-user section permissions, USERS sheet Col C) ----------
+// At login, the USERS sheet's Col C (a multi-select dropdown of section
+// names: Reports, End Of Line, Edge Paint, Pre-AQL, Post AQL, Production,
+// Warehouse) is saved to localStorage as `nimbus_access`. Every section
+// click below is checked against this list before it's allowed to open;
+// if the user isn't permitted, they see a warning instead and nothing
+// opens.
+function getUserAccess() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem('nimbus_access') || '[]');
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+// Normalizes labels so "Pre-AQL" (sheet) / "Pre AQL" (UI) / "pre  aql"
+// all compare equal — case, hyphens, and extra spaces are ignored.
+function normalizeAccessLabel(str) {
+  return (str || '').toString().toLowerCase().replace(/[-\s]+/g, ' ').trim();
+}
+
+function hasAccessTo(label) {
+  const target = normalizeAccessLabel(label);
+  if (!target) return true; // nothing to check against
+  return getUserAccess().some(a => normalizeAccessLabel(a) === target);
+}
+
+// Shown whenever a user taps a section they don't have access to.
+function showAccessDenied(label) {
+  showToast(`You don't have access to ${label}. Please contact your admin.`);
+}
+
 // ---------- Fab (quick menu) — toggles Line Stages <-> Store/Warehouse KPIs ----------
 const syncBtn = document.getElementById('syncBtn');
 const stagesGrid = document.getElementById('stagesGrid');
@@ -32,11 +65,17 @@ function toggleStagesView() {
   if (stagesSectionLabel) {
     stagesSectionLabel.textContent = showingKpis ? 'Inventory Transfer' : 'Line Stages';
   }
-  showToast(showingKpis ? 'Showing Store & Warehouse' : 'Showing Line Stages');
+  showToast(showingKpis ? 'Showing Production & Warehouse' : 'Showing Line Stages');
 }
 
 if (syncBtn) {
-  syncBtn.addEventListener('click', toggleStagesView);
+  syncBtn.addEventListener('click', () => {
+    if (!hasAccessTo('Warehouse')) {
+      showAccessDenied('Warehouse');
+      return;
+    }
+    toggleStagesView();
+  });
 }
 
 // ---------- My Reports ----------
@@ -121,6 +160,8 @@ function exportReportsExcel() {
 // whatever set of entries is currently in view (already date-filtered).
 function computeReportKpis(entries) {
   let totalChecked = 0, totalRepair = 0, totalWh = 0;
+  const uniqueBatches = new Set();
+  const uniqueStyles = new Set();
 
   entries.forEach(entry => {
     const checked = Number(entry.checkedQty) || 0;
@@ -130,10 +171,19 @@ function computeReportKpis(entries) {
     totalChecked += checked;
     totalRepair += repair;
     totalWh += wh;
+
+    if (entry.batchId) uniqueBatches.add(entry.batchId);
+    if (entry.style) uniqueStyles.add(entry.style);
   });
 
   return {
-    totalBatchesChecked: entries.length,
+    // "Total Batch Checked" = count of UNIQUE batches (Batch ID) across all entries.
+    totalBatchChecked: uniqueBatches.size,
+    // "Total Lot Checked" = count of entries (each entry = one lot submission;
+    // a batch can be checked/submitted multiple times as separate lots).
+    totalLotChecked: entries.length,
+    // "Total Style Checked" = count of UNIQUE styles across all entries.
+    totalStyleChecked: uniqueStyles.size,
     totalChecked,
     totalRepair,
     totalWh,
@@ -167,13 +217,14 @@ function computeLastEntryAvailableQtySum(entries) {
   return total;
 }
 
-// A single KPI card's markup — column wrapper + card, sized to sit 3-per-row.
+// A single KPI card's markup — column wrapper + card, sized to sit 4-per-row
+// (2 rows for 8 KPIs), so each card is smaller/more compact than before.
 function kpiCardHtml(label, value, suffix) {
   return `
-    <div style="width:33.333%;box-sizing:border-box;padding:6px;">
-      <div style="background:#f7f5ff;border:2px solid #b9a3ff;border-radius:14px;padding:14px 12px;box-shadow:0 2px 6px rgba(90,60,200,0.08);text-align:center;">
-        <div style="font-family:'IBM Plex Sans',sans-serif;font-size:10.5px;color:#8b81ab;font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;text-align:center;">${escapeHtml(label)}</div>
-        <div style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:22px;color:#4527a0;text-align:center;">${escapeHtml(String(value))}${suffix}</div>
+    <div style="width:25%;box-sizing:border-box;padding:5px;">
+      <div style="background:#f7f5ff;border:2px solid #b9a3ff;border-radius:12px;padding:10px 8px;box-shadow:0 2px 6px rgba(90,60,200,0.08);text-align:center;">
+        <div style="font-family:'IBM Plex Sans',sans-serif;font-size:9px;color:#8b81ab;font-weight:700;text-transform:uppercase;letter-spacing:.3px;margin-bottom:5px;text-align:center;">${escapeHtml(label)}</div>
+        <div style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:18px;color:#4527a0;text-align:center;">${escapeHtml(String(value))}${suffix}</div>
       </div>
     </div>`;
 }
@@ -225,8 +276,10 @@ function buildPdfReportBanner(kpis, rangeLabel) {
       </div>
     </div>
     <div style="height:3px;border-radius:2px;background:linear-gradient(90deg,#4527a0,#7c5cf0,#c9b8ff);margin-bottom:16px;"></div>
-    <div style="display:flex;flex-wrap:wrap;margin:-6px;">
-      ${kpiCardHtml('Total Batches Checked', kpis.totalBatchesChecked, '')}
+    <div style="display:flex;flex-wrap:wrap;margin:-5px;">
+      ${kpiCardHtml('Total Batch Checked', kpis.totalBatchChecked, '')}
+      ${kpiCardHtml('Total Lot Checked', kpis.totalLotChecked, '')}
+      ${kpiCardHtml('Total Style Checked', kpis.totalStyleChecked, '')}
       ${kpiCardHtml('Total Checked Qty', kpis.totalChecked, '')}
       ${kpiCardHtml('Total Repair Qty', kpis.totalRepair, '')}
       ${kpiCardHtml('Total Sent to WH', kpis.totalWh, '')}
@@ -320,6 +373,27 @@ async function loadMyReports() {
   }
 }
 
+// Quietly re-fetches "My Reports" in the background — no loading state, no
+// toast, table/filters/scroll position untouched unless the data actually
+// changed. Used for the 5s auto-refresh while the sheet is open.
+let myReportsRefreshInFlight = false;
+async function loadMyReportsSilently() {
+  if (!reportsTableBody || myReportsRefreshInFlight) return;
+  myReportsRefreshInFlight = true;
+  try {
+    const username = localStorage.getItem('nimbus_username') || '';
+    const response = await fetch(`${WEB_APP_URL}?action=reports&username=${encodeURIComponent(username)}`);
+    const result = await response.json();
+    if (!result.success) return;
+    reportEntries = Array.isArray(result.entries) ? result.entries : [];
+    renderReports();
+  } catch (error) {
+    // Silent by design — a background poll failing shouldn't interrupt the user.
+  } finally {
+    myReportsRefreshInFlight = false;
+  }
+}
+
 function openReportsSheet() {
   if (!reportsSheet || !reportsOverlay) return;
   reportsSheet.classList.add('open');
@@ -359,6 +433,275 @@ if (reportsClearFilter) reportsClearFilter.addEventListener('click', () => {
 });
 if (exportExcelBtn) exportExcelBtn.addEventListener('click', exportReportsExcel);
 if (exportPdfBtn) exportPdfBtn.addEventListener('click', exportReportsPdf);
+
+// ---------- Reports Page (bottom-nav "Reports" -> "End Of Line" sub-view) ----------
+// Unlike "My Reports" (which is scoped to the logged-in user via
+// ?action=reports&username=<me>), this page is the ALL-USERS view: calling
+// the same endpoint with an empty username makes getUserEolReport() in
+// Code.gs skip the username filter and return every entry in the
+// "END OF LINE" sheet, from every user.
+const reportsPage = document.getElementById('reportsPage');
+const homeContent = document.getElementById('homeContent');
+const heroSection = document.querySelector('.hero');
+const eolRepFrom = document.getElementById('eolRepFrom');
+const eolRepTo = document.getElementById('eolRepTo');
+const eolRepClear = document.getElementById('eolRepClear');
+const eolRepUserFilter = document.getElementById('eolRepUserFilter');
+const reportKpiHeadingTag = document.querySelector('.report-kpi-heading-tag');
+const eolRepTableBody = document.getElementById('eolRepTableBody');
+const eolRepTableCount = document.getElementById('eolRepTableCount');
+const eolRepExportExcelBtn = document.getElementById('eolRepExportExcelBtn');
+const eolRepExportPdfBtn = document.getElementById('eolRepExportPdfBtn');
+let eolAllReportEntries = [];
+let eolAllReportsLoaded = false;
+
+const reportsListView = document.getElementById('reportsListView');
+const reportsDetailView = document.getElementById('reportsDetailView');
+const eolReportCard = document.getElementById('eolReportCard');
+const eolReportCardCountNum = document.getElementById('eolReportCardCountNum');
+const reportsBackBtn = document.getElementById('reportsBackBtn');
+
+// Tapping the "END OF LINE" report card opens the full KPI + table report.
+function openEolReportDetail() {
+  if (!hasAccessTo('End Of Line')) {
+    showAccessDenied('End Of Line');
+    return;
+  }
+  if (reportsListView) reportsListView.hidden = true;
+  if (reportsDetailView) reportsDetailView.hidden = false;
+  loadEolAllReports();
+}
+
+// Back button returns to the report cards list.
+function closeEolReportDetail() {
+  if (reportsDetailView) reportsDetailView.hidden = true;
+  if (reportsListView) reportsListView.hidden = false;
+}
+
+if (eolReportCard) {
+  eolReportCard.addEventListener('click', openEolReportDetail);
+}
+if (reportsBackBtn) {
+  reportsBackBtn.addEventListener('click', closeEolReportDetail);
+}
+
+// Resets the Reports tab back to the list view (called whenever the
+// bottom-nav "Reports" button is tapped) and refreshes the live entry
+// count shown on the "END OF LINE" card.
+function resetReportsToListView() {
+  closeEolReportDetail();
+  loadEolAllReports();
+}
+
+function setKpiText(id, value) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = value;
+}
+
+function getFilteredEolAllEntries() {
+  const from = eolRepFrom ? eolRepFrom.value : '';
+  const to = eolRepTo ? eolRepTo.value : '';
+  const user = eolRepUserFilter ? eolRepUserFilter.value : '';
+  return eolAllReportEntries.filter(entry =>
+    (!from || entry.checkDate >= from) &&
+    (!to || entry.checkDate <= to) &&
+    (!user || (entry.submittedBy || '').toLowerCase() === user.toLowerCase())
+  );
+}
+
+// Rebuilds the User filter's <option> list from whatever users are present
+// in the currently loaded entries. Keeps the user's current selection if it
+// still exists after a refresh; otherwise falls back to "All Users".
+function populateEolUserFilter() {
+  if (!eolRepUserFilter) return;
+  const previous = eolRepUserFilter.value;
+  const users = Array.from(new Set(
+    eolAllReportEntries.map(entry => (entry.submittedBy || '').trim()).filter(Boolean)
+  )).sort((a, b) => a.localeCompare(b));
+
+  eolRepUserFilter.innerHTML = '<option value="">All Users</option>' +
+    users.map(user => `<option value="${escapeHtml(user)}">${escapeHtml(user)}</option>`).join('');
+
+  eolRepUserFilter.value = users.some(u => u.toLowerCase() === previous.toLowerCase()) ? previous : '';
+}
+
+function renderEolReportPage() {
+  if (!eolRepTableBody) return;
+  const visibleEntries = getFilteredEolAllEntries();
+
+  // 8 KPIs (All Users), 4-per-line — reuses the exact same figures the
+  // "My Reports" PDF banner already computes, just for every user at once.
+  const kpis = computeReportKpis(visibleEntries);
+  setKpiText('eolRepKpiBatch', kpis.totalBatchChecked);
+  setKpiText('eolRepKpiLot', kpis.totalLotChecked);
+  setKpiText('eolRepKpiStyle', kpis.totalStyleChecked);
+  setKpiText('eolRepKpiChecked', kpis.totalChecked);
+  setKpiText('eolRepKpiRepair', kpis.totalRepair);
+  setKpiText('eolRepKpiWh', kpis.totalWh);
+  setKpiText('eolRepKpiAvl', kpis.totalAvl);
+  setKpiText('eolRepKpiPercent', `${kpis.repairPercent.toFixed(1)}%`);
+
+  if (eolRepTableCount) eolRepTableCount.textContent = `${visibleEntries.length} ${visibleEntries.length === 1 ? 'entry' : 'entries'}`;
+  eolRepTableBody.innerHTML = visibleEntries.length
+    ? visibleEntries.map(entry => `<tr><td>${escapeHtml(entry.batchId)}</td><td>${escapeHtml(entry.style)}</td><td>${escapeHtml(entry.colour)}</td><td>${escapeHtml(entry.submittedBy)}</td><td>${escapeHtml(displayReportDate(entry.checkDate))}</td><td>${escapeHtml(entry.checkedQty)}</td><td>${escapeHtml(entry.repairQty)}</td><td>${escapeHtml(entry.whQty)}</td><td>${escapeHtml(entry.availableQty)}</td></tr>`).join('')
+    : '<tr><td colspan="9" class="reports-state">No entries found for this filter.</td></tr>';
+
+  if (reportKpiHeadingTag) {
+    reportKpiHeadingTag.textContent = eolRepUserFilter && eolRepUserFilter.value ? eolRepUserFilter.value : 'All Users';
+  }
+}
+
+async function loadEolAllReports(force) {
+  if (eolAllReportsLoaded && !force) { renderEolReportPage(); return; }
+  if (!eolRepTableBody) return;
+  eolRepTableBody.innerHTML = '<tr><td colspan="9" class="reports-state">Loading entries…</td></tr>';
+  try {
+    const response = await fetch(`${WEB_APP_URL}?action=reports&username=`);
+    const result = await response.json();
+    if (!result.success) throw new Error(result.error || 'Could not load reports');
+    eolAllReportEntries = Array.isArray(result.entries) ? result.entries : [];
+    eolAllReportsLoaded = true;
+    if (eolReportCardCountNum) eolReportCardCountNum.textContent = eolAllReportEntries.length;
+    populateEolUserFilter();
+    renderEolReportPage();
+  } catch (error) {
+    eolRepTableBody.innerHTML = '<tr><td colspan="9" class="reports-state">Unable to load entries. Please try again.</td></tr>';
+    if (eolRepTableCount) eolRepTableCount.textContent = 'Unavailable';
+    if (eolReportCardCountNum) eolReportCardCountNum.textContent = '—';
+  }
+}
+
+// Quietly re-fetches the "End Of Line" all-users report in the background —
+// no loading state, no toast, table/filters/dropdown selection/scroll
+// position untouched unless the data actually changed. Used for the 5s
+// auto-refresh while the report detail view is open.
+let eolReportRefreshInFlight = false;
+async function loadEolAllReportsSilently() {
+  if (!eolRepTableBody || eolReportRefreshInFlight) return;
+  eolReportRefreshInFlight = true;
+  try {
+    const response = await fetch(`${WEB_APP_URL}?action=reports&username=`);
+    const result = await response.json();
+    if (!result.success) return;
+    eolAllReportEntries = Array.isArray(result.entries) ? result.entries : [];
+    eolAllReportsLoaded = true;
+    if (eolReportCardCountNum) eolReportCardCountNum.textContent = eolAllReportEntries.length;
+    populateEolUserFilter();
+    renderEolReportPage();
+  } catch (error) {
+    // Silent by design — a background poll failing shouldn't interrupt the user.
+  } finally {
+    eolReportRefreshInFlight = false;
+  }
+}
+
+if (eolRepFrom) eolRepFrom.addEventListener('change', renderEolReportPage);
+if (eolRepTo) eolRepTo.addEventListener('change', renderEolReportPage);
+if (eolRepUserFilter) eolRepUserFilter.addEventListener('change', renderEolReportPage);
+if (eolRepClear) eolRepClear.addEventListener('click', () => {
+  if (eolRepFrom) eolRepFrom.value = '';
+  if (eolRepTo) eolRepTo.value = '';
+  if (eolRepUserFilter) eolRepUserFilter.value = '';
+  renderEolReportPage();
+});
+
+function eolReportFileSuffix() {
+  const from = eolRepFrom && eolRepFrom.value;
+  const to = eolRepTo && eolRepTo.value;
+  return from || to ? `${from || 'start'}_to_${to || 'today'}` : new Date().toISOString().slice(0, 10);
+}
+
+function eolReportExportRows() {
+  // Newest-first from the server -> flip back to chronological order so
+  // exported rows read top-to-bottom in the order entries were made.
+  return getFilteredEolAllEntries().slice().reverse().map(entry => ({
+    'Batch ID': entry.batchId || '',
+    Style: entry.style || '',
+    Colour: entry.colour || '',
+    'Checked By': entry.submittedBy || '',
+    'Check Date': displayReportDate(entry.checkDate),
+    'Checked Qty': Number(entry.checkedQty) || 0,
+    'Repair Qty': Number(entry.repairQty) || 0,
+    'WH Qty': Number(entry.whQty) || 0,
+    'Avl. Qty': Number(entry.availableQty) || 0
+  }));
+}
+
+function exportEolReportExcel() {
+  const rows = eolReportExportRows();
+  if (!rows.length) return showToast('No report entries available to export.');
+  if (!window.XLSX) return showToast('Excel export is loading. Please try again.');
+  const workbook = XLSX.utils.book_new();
+  const worksheet = XLSX.utils.json_to_sheet(rows);
+  worksheet['!cols'] = [14, 16, 16, 16, 14, 14, 13, 11, 11].map(width => ({ wch: width }));
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'End Of Line');
+  XLSX.writeFile(workbook, `End_Of_Line_Report_${eolReportFileSuffix()}.xlsx`);
+  showToast('Excel report downloaded.');
+}
+
+async function exportEolReportPdf() {
+  const entries = getFilteredEolAllEntries();
+  if (!entries.length) return showToast('No report entries available to export.');
+  if (!window.jspdf || !window.jspdf.jsPDF) return showToast('PDF export is loading. Please try again.');
+  if (!window.html2canvas) return showToast('PDF export is loading. Please try again.');
+
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+  const from = eolRepFrom && eolRepFrom.value ? displayReportDate(eolRepFrom.value) : 'All time';
+  const to = eolRepTo && eolRepTo.value ? displayReportDate(eolRepTo.value) : 'Today';
+  const rangeLabel = `${from} — ${to}`;
+
+  const kpis = computeReportKpis(entries);
+  const banner = buildPdfReportBanner(kpis, rangeLabel);
+
+  if (document.fonts && document.fonts.ready) {
+    try { await document.fonts.ready; } catch (err) { /* ignore */ }
+  }
+
+  const imgWidthMm = 182;
+  let bannerHeightMm = 0;
+
+  try {
+    const canvas = await html2canvas(banner, { scale: 2, backgroundColor: '#ffffff', useCORS: true });
+    bannerHeightMm = canvas.height * imgWidthMm / canvas.width;
+    pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 14, 12, imgWidthMm, bannerHeightMm);
+  } catch (err) {
+    console.error('PDF banner render failed, falling back to plain header:', err);
+    pdf.setTextColor(69, 39, 160);
+    pdf.setFontSize(16);
+    pdf.text('Trio Trend Exports Pvt. Ltd. — End of Line Report', 14, 20);
+    bannerHeightMm = 12;
+  } finally {
+    banner.remove();
+  }
+
+  const rows = eolReportExportRows();
+  pdf.autoTable({
+    startY: 12 + bannerHeightMm + 8,
+    head: [['Batch ID', 'Style', 'Colour', 'Checked By', 'Check Date', 'Checked Qty', 'Repair Qty', 'WH Qty', 'Avl. Qty']],
+    body: rows.map(row => [row['Batch ID'], row.Style, row.Colour, row['Checked By'], row['Check Date'], row['Checked Qty'], row['Repair Qty'], row['WH Qty'], row['Avl. Qty']]),
+    theme: 'grid',
+    headStyles: { fillColor: [76, 39, 160], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 7.5, halign: 'center', lineWidth: 0.3, lineColor: [60, 30, 130] },
+    styles: { fontSize: 7, cellPadding: 2, halign: 'center', lineWidth: 0.3, lineColor: [120, 100, 180] },
+    alternateRowStyles: { fillColor: [247, 245, 255] },
+    margin: { top: 20, left: 14, right: 14, bottom: 18 },
+    didDrawPage: function (data) {
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      pdf.setFontSize(8);
+      pdf.setTextColor(150, 140, 190);
+      pdf.text('Trio Trend Exports Pvt. Ltd. — FMS Workspace', 14, pageHeight - 8);
+      pdf.text(`Page ${data.pageNumber}`, pageWidth - 24, pageHeight - 8);
+    }
+  });
+
+  pdf.save(`End_Of_Line_Report_${eolReportFileSuffix()}.pdf`);
+  showToast('Stylish PDF report downloaded.');
+}
+
+if (eolRepExportExcelBtn) eolRepExportExcelBtn.addEventListener('click', exportEolReportExcel);
+if (eolRepExportPdfBtn) eolRepExportPdfBtn.addEventListener('click', exportEolReportPdf);
 
 // ---------- Notification bell ----------
 const bellBtn = document.getElementById('bellBtn');
@@ -420,6 +763,11 @@ if (eolOverlay) eolOverlay.addEventListener('click', closeEolSheet);
 
 function handleStageClick(btn) {
   const label = btn.dataset.label;
+  if (!hasAccessTo(label)) {
+    closeSidePanel();
+    showAccessDenied(label);
+    return;
+  }
   if (label === 'End of Line') {
     closeSidePanel(); // Close side panel if it's open
     openEolSheet();
@@ -429,7 +777,11 @@ function handleStageClick(btn) {
   }
 }
 
-document.querySelectorAll('.stage-card').forEach(btn => {
+// NOTE: report cards (e.g. #eolReportCard) also use the "stage-card" class
+// for styling, but they open a report detail view (handled separately by
+// their own listener below) rather than a stage sheet — so they're
+// excluded here via [data-label], which only real stage cards have.
+document.querySelectorAll('.stage-card[data-label]').forEach(btn => {
   btn.addEventListener('click', () => handleStageClick(btn));
 });
 
@@ -451,9 +803,26 @@ if (avatarBtn) {
 // ---------- Bottom nav ----------
 document.querySelectorAll('.bottom-nav button').forEach(btn => {
   btn.addEventListener('click', () => {
+    const view = btn.dataset.view;
+    if (view === 'reports' && !hasAccessTo('Reports')) {
+      showAccessDenied('Reports');
+      return; // stay on the current tab/view — don't switch active state
+    }
+
     document.querySelectorAll('.bottom-nav button').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
-    showToast(btn.dataset.view === 'reports' ? 'Opening reports' : 'Home');
+
+    if (view === 'reports') {
+      if (homeContent) homeContent.hidden = true;
+      if (heroSection) heroSection.hidden = true;
+      if (reportsPage) reportsPage.hidden = false;
+      resetReportsToListView();
+    } else {
+      if (reportsPage) reportsPage.hidden = true;
+      if (heroSection) heroSection.hidden = false;
+      if (homeContent) homeContent.hidden = false;
+    }
+    showToast(view === 'reports' ? 'Opening reports' : 'Home');
 
     const icon = btn.querySelector('.nav-icon');
     if (icon) {
@@ -528,6 +897,7 @@ if (loginForm) {
       if (match) {
         localStorage.setItem('nimbus_logged_in', 'true');
         localStorage.setItem('nimbus_username', match.username);
+        localStorage.setItem('nimbus_access', JSON.stringify(match.access || []));
         window.location.href = 'index.html';
       } else {
         errorMsg.textContent = 'Invalid username or password.';
@@ -1016,6 +1386,21 @@ async function silentlyRefreshEolCount() {
     const result = await response.json();
     if (!result.success) return;
 
+    // ---- Silent access-list refresh (USERS sheet Col C) ----
+    // An admin can change a user's section access (Reports, End Of Line,
+    // Edge Paint, etc.) at any time. This same request already returns the
+    // full `users` list, so piggyback on it here to keep localStorage's
+    // `nimbus_access` in sync with the sheet every 5s — access
+    // granted/revoked mid-session takes effect immediately (next click),
+    // with no toast, no reload, and no need to log out and back in.
+    const currentUsername = (localStorage.getItem('nimbus_username') || '').trim();
+    if (currentUsername && Array.isArray(result.users)) {
+      const me = result.users.find(u => (u.username || '').toString().trim().toLowerCase() === currentUsername.toLowerCase());
+      if (me) {
+        localStorage.setItem('nimbus_access', JSON.stringify(me.access || []));
+      }
+    }
+
     const currentUserEntryCount = getCurrentUserEolEntryCount(result);
     const currentUserTodayCount = getCurrentUserEolTodayEntryCount(result);
     animateEolStageCount(currentUserEntryCount);
@@ -1035,3 +1420,18 @@ async function silentlyRefreshEolCount() {
 if (eolStageCountNum) {
   setInterval(silentlyRefreshEolCount, 5000);
 }
+
+// ---------- Silent auto-refresh for the Reports views ----------
+// Every 5 seconds, quietly re-fetch whichever report table the user
+// currently has open (My Reports sheet, or the End Of Line all-users
+// report) and re-render it in place — no loading state, no toast, filters
+// and scroll position left alone. Does nothing while neither is open, so
+// it doesn't fire background requests for no reason.
+setInterval(() => {
+  if (reportsSheet && reportsSheet.classList.contains('open')) {
+    loadMyReportsSilently();
+  }
+  if (reportsPage && !reportsPage.hidden && reportsDetailView && !reportsDetailView.hidden) {
+    loadEolAllReportsSilently();
+  }
+}, 5000);
