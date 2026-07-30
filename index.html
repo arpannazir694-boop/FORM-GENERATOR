@@ -180,7 +180,7 @@
       </div>
     </div>
 
-    <div class="content">
+    <div class="content" id="homeContent">
       <div class="section-label" id="stagesSectionLabel">Line Stages</div>
       <div class="section-accent"><span class="bar"></span><span class="dot"></span></div>
 
@@ -276,7 +276,7 @@
                 stroke-linejoin="round" />
               <path d="M9 12a3 3 0 0 0 6 0" stroke="var(--ic)" stroke-width="1.8" stroke-linecap="round" />
             </svg></span>
-          <h3>STORE</h3>
+          <h3>PRODUCTION</h3>
           <div class="kpi-value" id="kpiStoreValue">—</div>
         </div>
 
@@ -305,6 +305,100 @@
           <small>Every Step, Every Time</small>
         </span>
         <span class="quality-dots" aria-hidden="true"></span>
+      </div>
+    </div>
+
+    <!-- ═══ REPORTS PAGE (bottom-nav "Reports") ═══ -->
+    <div class="content reports-page" id="reportsPage" hidden>
+
+      <!-- LIST VIEW: available reports, shown first -->
+      <div id="reportsListView">
+        <div class="section-label">Reports</div>
+        <div class="section-accent"><span class="bar"></span><span class="dot"></span></div>
+
+        <div class="clay-grid" id="reportsGrid">
+          <button class="stage-card" id="eolReportCard" type="button" data-report="eol"
+            style="--tint-a:#dbe6ff; --tint-b:#f1f5ff; --ic:#3b6fef; --sh:rgba(59,111,239,0.22); --d:0s;">
+            <div class="stage-count" id="eolReportCardCount">
+              <span class="stage-count-num" id="eolReportCardCountNum">—</span>
+            </div>
+            <span class="stage-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                <path d="M6 3v18" stroke="var(--ic)" stroke-width="2" stroke-linecap="round" />
+                <path d="M6 4h9l-2 3 2 3H6" fill="var(--ic)" />
+              </svg></span>
+            <h3>END OF LINE</h3>
+            <div class="stage-footer">
+              <span class="stage-bar"></span>
+              <span class="stage-arrow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <path d="M5 12h14M13 6l6 6-6 6" stroke="var(--ic)" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round" />
+                </svg></span>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <!-- DETAIL VIEW: opened by tapping a report card above -->
+      <div id="reportsDetailView" hidden>
+        <button type="button" class="report-back-btn" id="reportsBackBtn">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+          Reports
+        </button>
+
+        <!-- END OF LINE REPORT -->
+        <div class="report-subview" id="eolReportSubview" data-subview="eol">
+
+          <div class="report-kpi-heading">
+            <span class="report-kpi-heading-dot" aria-hidden="true"></span>
+            <h3 id="reportSubviewTitle">End Of Line</h3>
+            <span class="report-kpi-heading-tag">All Users</span>
+          </div>
+
+          <div class="report-userfilter">
+            <label for="eolRepUserFilter">User</label>
+            <select id="eolRepUserFilter">
+              <option value="">All Users</option>
+            </select>
+          </div>
+
+          <div class="report-daterange">
+            <div><label for="eolRepFrom">From</label><input type="date" id="eolRepFrom"></div>
+            <div><label for="eolRepTo">To</label><input type="date" id="eolRepTo"></div>
+            <button type="button" id="eolRepClear">Clear</button>
+          </div>
+
+          <div class="kpi-grid-mini" id="eolRepKpiGrid">
+            <div class="kpi-mini"><span class="kpi-mini-label">Total Batch Checked</span><span class="kpi-mini-value" id="eolRepKpiBatch">0</span></div>
+            <div class="kpi-mini"><span class="kpi-mini-label">Total Lot Checked</span><span class="kpi-mini-value" id="eolRepKpiLot">0</span></div>
+            <div class="kpi-mini"><span class="kpi-mini-label">Total Style Checked</span><span class="kpi-mini-value" id="eolRepKpiStyle">0</span></div>
+            <div class="kpi-mini"><span class="kpi-mini-label">Total Checked Qty</span><span class="kpi-mini-value" id="eolRepKpiChecked">0</span></div>
+            <div class="kpi-mini"><span class="kpi-mini-label">Total Repair Qty</span><span class="kpi-mini-value" id="eolRepKpiRepair">0</span></div>
+            <div class="kpi-mini"><span class="kpi-mini-label">Total Sent to WH</span><span class="kpi-mini-value" id="eolRepKpiWh">0</span></div>
+            <div class="kpi-mini"><span class="kpi-mini-label">Total Available Qty</span><span class="kpi-mini-value" id="eolRepKpiAvl">0</span></div>
+            <div class="kpi-mini"><span class="kpi-mini-label">Repair %</span><span class="kpi-mini-value" id="eolRepKpiPercent">0%</span></div>
+          </div>
+
+          <div class="reports-export-actions">
+            <button class="reports-export-btn reports-export-btn--excel" id="eolRepExportExcelBtn" type="button">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 3h10a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" stroke="currentColor" stroke-width="1.8"/><path d="M9 9l6 6m0-6l-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+              Excel (.xlsx)
+            </button>
+            <button class="reports-export-btn reports-export-btn--pdf" id="eolRepExportPdfBtn" type="button">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 3h7l4 4v14H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" stroke="currentColor" stroke-width="1.8"/><path d="M14 3v5h5M9 16h6M9 12h3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+              PDF
+            </button>
+          </div>
+
+          <div class="reports-table-heading"><span>Entry details</span><small id="eolRepTableCount">0 entries</small></div>
+          <div class="reports-table-wrap">
+            <table class="reports-table">
+              <thead><tr><th>Batch ID</th><th>Style</th><th>Colour</th><th>Checked By</th><th>Check Date</th><th>Checked Qty</th><th>Repair Qty</th><th>WH Qty</th><th>Avl. Qty</th></tr></thead>
+              <tbody id="eolRepTableBody"><tr><td colspan="9" class="reports-state">Loading entries…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </div>
 
