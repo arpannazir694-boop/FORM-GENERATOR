@@ -820,6 +820,239 @@ body {
   margin-top: 2px;
 }
 
+/* ═══════════════ REPORTS PAGE (bottom-nav "Reports") ═══════════════ */
+.reports-page[hidden] { display: none; }
+
+.subview-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.subview-label {
+  font-family: 'Nunito', sans-serif;
+  font-weight: 800;
+  font-size: 11px;
+  color: var(--text-mid);
+  text-transform: uppercase;
+  letter-spacing: .5px;
+}
+
+.subview-select-wrap {
+  position: relative;
+  flex: 1;
+  max-width: 230px;
+}
+
+.subview-select {
+  width: 100%;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  border: none;
+  outline: none;
+  background: linear-gradient(145deg, #f4f1ff, #ffffff);
+  color: var(--accent);
+  font: 800 12.5px 'Space Grotesk', sans-serif;
+  padding: 11px 32px 11px 14px;
+  border-radius: 14px;
+  box-shadow: var(--clay-raise);
+  cursor: pointer;
+}
+
+.subview-select-arrow {
+  position: absolute;
+  right: 11px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--accent);
+  pointer-events: none;
+}
+
+.report-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  background: linear-gradient(145deg, #f4f1ff, #ffffff);
+  color: var(--accent);
+  font: 800 12px 'Nunito', sans-serif;
+  line-height: 1;
+  padding: 10px 16px 10px 12px;
+  border-radius: 999px;
+  box-shadow: 0 3px 10px rgba(90, 60, 200, 0.16);
+  cursor: pointer;
+  margin-bottom: 16px;
+}
+
+.report-back-btn svg {
+  flex-shrink: 0;
+  display: block;
+}
+
+.report-back-btn:hover {
+  box-shadow: 0 4px 12px rgba(90, 60, 200, 0.22);
+}
+
+.report-back-btn:active {
+  transform: scale(.96);
+  box-shadow: 0 2px 6px rgba(90, 60, 200, 0.16);
+}
+
+.report-kpi-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.report-kpi-heading-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--accent-orange));
+  flex-shrink: 0;
+}
+
+.report-kpi-heading h3 {
+  margin: 0;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 900;
+  font-size: 16px;
+  letter-spacing: -0.2px;
+  color: var(--text-dark);
+}
+
+.report-kpi-heading-tag {
+  margin-left: auto;
+  background: rgba(124, 92, 240, .12);
+  color: var(--accent);
+  font: 800 9.5px 'Nunito', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: .4px;
+  padding: 4px 9px;
+  border-radius: 20px;
+}
+
+.report-userfilter {
+  margin-bottom: 12px;
+}
+
+.report-userfilter label {
+  display: block;
+  margin: 0 0 5px 2px;
+  color: var(--text-mid);
+  font: 800 10px 'Space Grotesk', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+}
+
+.report-userfilter select {
+  width: 100%;
+  min-width: 0;
+  border: none;
+  outline: none;
+  color: var(--text-dark);
+  background: #fff;
+  padding: 10px 9px;
+  border-radius: 12px;
+  font: 700 11.5px 'Poppins', sans-serif;
+  box-shadow: inset 2px 2px 6px rgba(90, 60, 200, .1);
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none'%3E%3Cpath d='M5 9l7 7 7-7' stroke='%237c5cf0' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 9px center;
+  padding-right: 28px;
+}
+
+.report-daterange {
+  display: flex;
+  align-items: end;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.report-daterange > div { flex: 1; }
+
+.report-daterange label {
+  display: block;
+  margin: 0 0 5px 2px;
+  color: var(--text-mid);
+  font: 800 10px 'Space Grotesk', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+}
+
+.report-daterange input {
+  width: 100%;
+  min-width: 0;
+  border: none;
+  outline: none;
+  color: var(--text-dark);
+  background: #fff;
+  padding: 10px 9px;
+  border-radius: 12px;
+  font: 700 11.5px 'Poppins', sans-serif;
+  box-shadow: inset 2px 2px 6px rgba(90, 60, 200, .1);
+}
+
+.report-daterange button {
+  border: none;
+  background: transparent;
+  color: var(--accent);
+  padding: 10px 0 10px 2px;
+  cursor: pointer;
+  font: 800 11px 'Nunito', sans-serif;
+}
+
+/* 8 KPIs, 4 small cards per line (2 lines total) */
+.kpi-grid-mini {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.kpi-mini {
+  background: linear-gradient(145deg, #f4f1ff, #ffffff);
+  border-radius: 14px;
+  padding: 10px 5px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 5px;
+  box-shadow: var(--clay-raise);
+}
+
+.kpi-mini-label {
+  font-family: 'Nunito', sans-serif;
+  font-weight: 800;
+  font-size: 8.3px;
+  color: var(--text-mid);
+  text-transform: uppercase;
+  letter-spacing: .2px;
+  line-height: 1.25;
+  min-height: 21px;
+}
+
+.kpi-mini-value {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 800;
+  font-size: 15.5px;
+  color: var(--accent);
+  letter-spacing: -0.3px;
+}
+
+@media (max-width: 360px) {
+  .kpi-grid-mini { gap: 6px; }
+  .kpi-mini { padding: 8px 4px; }
+  .kpi-mini-value { font-size: 13.5px; }
+  .kpi-mini-label { font-size: 7.8px; }
+}
+
 .eol-reports-action { position: absolute; top: 17px; left: 68px; width: 32px; height: 32px; border-radius: 11px; display: flex; align-items: center; justify-content: center; color: var(--ic); background: rgba(255,255,255,.82); box-shadow: 3px 4px 9px var(--sh, rgba(59,111,239,.18)), -2px -2px 7px rgba(255,255,255,.8); cursor: pointer; transition: transform .16s cubic-bezier(.34, 1.56, .64, 1), background .16s ease; }
 .eol-reports-action:hover { transform: translateY(-2px) scale(1.08); background: #fff; }
 .eol-reports-action:focus-visible { outline: 2px solid var(--ic); outline-offset: 2px; }
